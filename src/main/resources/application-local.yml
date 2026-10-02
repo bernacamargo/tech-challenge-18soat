@@ -1,0 +1,6 @@
+# Perfil local: aponta para o postgres do docker-compose (profile "dev")
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/oficina
+    username: oficina
+    password: oficina

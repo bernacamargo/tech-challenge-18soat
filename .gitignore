@@ -1,0 +1,32 @@
+# Build
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / env
+*.log
+logs/
+.env
+.env.*
+
+# Ferramentas locais do workspace (ZCode)
+.zcode/
+.zcodeignore
+
+# Materiais de referencia do grupo (ficam fora do repositorio; versoes exportadas vao em docs/)
+/Tech Challenge.pdf
+/Fase 1 - Tech Challenge.pdf
+
+# Dados locais de ferramentas
+/dependency-check-data/
