@@ -93,10 +93,42 @@ Com a aplicação no ar: **http://localhost:8080/swagger-ui.html** (OpenAPI em `
 
 ## Usuários e credenciais de demonstração / procedimento de autenticação
 
-> **[PREENCHER]** As APIs administrativas usarão autenticação **JWT via Keycloak** self-hosted
-> (docker-compose) com realm `oficina` e papéis `ATENDENTE`/`MECANICO`/`ADMINISTRADOR` (ADR 0006).
-> Credenciais de demonstração e o procedimento de obtenção do token serão publicados aqui junto
-> com a fatia vertical de `identidadeacesso`.
+As APIs administrativas usam autenticação **JWT via Keycloak** self-hosted (sobem junto no
+docker-compose, porta `8081`), com o realm **`oficina`** importado automaticamente (config-as-code)
+e os papéis `ATENDENTE`, `MECANICO` e `ADMINISTRADOR` (ADR-0006).
+
+**Usuários de demonstração** (somente ambiente local — nunca usar em produção):
+
+| Usuário | Senha | Papel |
+|---|---|---|
+| `atendente` | `demo123` | `ATENDENTE` — atendimento e criação de OS |
+| `mecanico` | `demo123` | `MECANICO` — diagnóstico e execução |
+| `administrador` | `demo123` | `ADMINISTRADOR` — CRUD de clientes, veículos, serviços, peças e estoque |
+
+**Procedimento para obter o token** (client público `oficina-api`, realm `oficina`):
+
+```bash
+# 1. Subir o ambiente (aplicação + postgres + keycloak)
+docker compose --profile full up -d
+
+# 2. Obter o access token (password grant, habilitado apenas para demonstração)
+curl -X POST "http://localhost:8081/realms/oficina/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password&client_id=oficina-api&scope=openid" \
+  -d "username=administrador&password=demo123"
+
+# 3. Chamar uma API administrativa com o token
+curl http://localhost:8080/api/admin/... \
+  -H "Authorization: Bearer <access_token>"
+```
+
+O console administrativo do Keycloak fica em `http://localhost:8081` (login `admin`/`admin`
+definido no `docker-compose.yml`, apenas para desenvolvimento). O token é validado pela API via
+JWKS do Keycloak — a aplicação não emite nem armazena credenciais.
+
+> ℹ️ Este fluxo entra em funcionamento com a fatia vertical de `identidadeacesso`
+> ([ADR-0006](docs/adr/0006-keycloak-autenticacao-autorizacao.md)); até lá as APIs administrativas
+> respondem 401 para qualquer credencial.
 
 ## Estrutura dos principais diretórios
 
