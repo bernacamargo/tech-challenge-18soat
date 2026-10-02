@@ -41,6 +41,7 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 - **Java 21**, **Spring Boot 3.5.x** (Web, Data JPA, Security, Validation, Actuator)
 - **PostgreSQL 17** + **Flyway** (migrations) + Spring Data JPA
 - **springdoc-openapi** (Swagger UI)
+- **Notificações por e-mail**: servidor SMTP local **MailPit** em Docker (envio real via SMTP, e-mails visualizados em UI própria)
 - **Testcontainers** (testes de integração com PostgreSQL real)
 - **JaCoCo** (gate de 80% de cobertura em domain/application), **SonarCloud** (qualidade),
   **OWASP Dependency-Check** (análise de vulnerabilidades)

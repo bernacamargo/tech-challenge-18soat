@@ -12,6 +12,6 @@
 | Incluir peça | Atendente/Mecânico | `PecaReservada` | Regra: estoque deve ter quantidade disponível |
 | Registrar diagnóstico | Mecânico | `DiagnosticoRegistrado` | Transição: Recebida → **Em diagnóstico** |
 | Gerar orçamento | Sistema | `OrcamentoGerado` | Automático: Σ serviços + Σ peças (Dinheiro); transição → **Aguardando aprovação** |
-| Enviar orçamento | Sistema/Atendente | `OrcamentoEnviado` | Disponibilizado ao cliente para aprovação |
+| Enviar orçamento | Sistema/Atendente | `OrcamentoEnviado` | E-mail ao cliente via SMTP local — MailPit (ADR-0007); disponibilizado para aprovação |
 | Aprovar orçamento | Cliente | `OrcamentoAprovado` | Transição → **Em execução** |
 | Rejeitar orçamento | Cliente | `OrcamentoRejeitado` | OS volta a Aguardando aprovação após ajuste, ou é encerrada |

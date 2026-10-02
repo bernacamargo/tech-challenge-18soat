@@ -16,6 +16,7 @@ Tech Challenge da fase 1 do curso **SOAT (Software Architecture)**, grupo **117*
 
 - Java 21 (somente Java; sem Kotlin), Spring Boot 3.5.x, Maven via wrapper (`./mvnw` — não requer Maven instalado)
 - Autenticação/autorização: **Keycloak self-hosted** (realm `oficina`, roles `ATENDENTE`/`MECANICO`/`ADMINISTRADOR`) — ADR 0006
+- Notificações por e-mail: **SMTP local via MailPit** (Docker, SMTP :1025 / UI :8025), port `NotificacaoPort` na application — ADR 0007
 - PostgreSQL 17 ("Postgres for everything"), Spring Data JPA + Flyway (migrations, snake_case)
 - Testcontainers para testes de integração (PostgreSQL real, `@ServiceConnection`)
 - springdoc-openapi 2.8.x (Swagger UI em `/swagger-ui.html`)
@@ -76,7 +77,3 @@ docker compose --profile full up -d --build               # app + PostgreSQL
   PRs pequenos e revisáveis por camada, nunca um PR gigante com tudo junto.
 - **Commits semânticos** (conventional commits): `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:` — ex.: `feat(atendimento): cria caso de uso de aprovação de orçamento`.
 - PRs usam o template (`.github/PULL_REQUEST_TEMPLATE.md`): **WHY / WHAT / HOW / ADDITIONAL DETAILS (evidências)** — evidências (Sonar, cobertura, screenshots) são obrigatórias, alimentam a entrega final.
-
-## Decisões pendentes (não implementar sem definir)
-
-- **Mecanismo de envio de notificações/orçamentos ao cliente** — aguardando resposta no fórum do professor. Quando definido, entra como **port na camada application** com implementação em infrastructure (SMTP local via Docker é a hipótese atual).
