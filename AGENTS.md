@@ -15,6 +15,7 @@ Tech Challenge da fase 1 do curso **SOAT (Software Architecture)**, grupo **117*
 ## Stack
 
 - Java 21 (somente Java; sem Kotlin), Spring Boot 3.5.x, Maven via wrapper (`./mvnw` — não requer Maven instalado)
+- Autenticação/autorização: **Keycloak self-hosted** (realm `oficina`, roles `ATENDENTE`/`MECANICO`/`ADMINISTRADOR`) — ADR 0006
 - PostgreSQL 17 ("Postgres for everything"), Spring Data JPA + Flyway (migrations, snake_case)
 - Testcontainers para testes de integração (PostgreSQL real, `@ServiceConnection`)
 - springdoc-openapi 2.8.x (Swagger UI em `/swagger-ui.html`)
@@ -28,7 +29,7 @@ Um pacote por bounded context, com camadas por dentro:
 br.com.grupo117.oficina
 ├── atendimento          (contexto core: Ordem de Serviço)
 ├── catalogoestoque      (serviços, peças, estoque)
-├── identidadeacesso     (usuários administrativos, JWT)
+├── identidadeacesso     (usuários administrativos — Keycloak/JWT, ADR 0006)
 └── infra                (compartilhado: config, security, api)
 ```
 

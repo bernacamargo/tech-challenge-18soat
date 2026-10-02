@@ -10,8 +10,8 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Segurança da API: stateless, CSRF off (API REST). Endpoints publicos apenas
  * para health e documentacao (Swagger/OpenAPI). As APIs administrativas exigem
- * autenticacao — o fluxo JWT self-managed entra com a fatia de identidadeacesso
- * (ADR 0004).
+ * autenticacao — a integracao com Keycloak (JWT + roles) entra com a fatia de
+ * identidadeacesso (ADR 0006).
  */
 @Configuration
 @EnableWebSecurity

@@ -1,6 +1,6 @@
 # ADR-0004: Autenticação JWT self-managed (sem provedor externo)
 
-- **Status**: Aceito
+- **Status**: Substituído por [ADR-0006](0006-keycloak-autenticacao-autorizacao.md)
 - **Data**: 2026-10-01
 - **Participantes**: Grupo 117 (alinhado em reunião)
 

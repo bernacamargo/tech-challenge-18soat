@@ -93,7 +93,8 @@ Com a aplicação no ar: **http://localhost:8080/swagger-ui.html** (OpenAPI em `
 
 ## Usuários e credenciais de demonstração / procedimento de autenticação
 
-> **[PREENCHER]** As APIs administrativas usarão autenticação **JWT self-managed** (ADR 0004).
+> **[PREENCHER]** As APIs administrativas usarão autenticação **JWT via Keycloak** self-hosted
+> (docker-compose) com realm `oficina` e papéis `ATENDENTE`/`MECANICO`/`ADMINISTRADOR` (ADR 0006).
 > Credenciais de demonstração e o procedimento de obtenção do token serão publicados aqui junto
 > com a fatia vertical de `identidadeacesso`.
 
