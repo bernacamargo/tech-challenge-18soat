@@ -70,6 +70,10 @@ docker compose --profile full up -d --build               # app + PostgreSQL
 
 - **Nada vai direto para `main`** — main protegida: tudo via Pull Request com CI verde.
 - Branches: `feat/*`, `fix/*`, `docs/*`, `chore/*`.
+- **PRs empilhados (stack) para fatias verticais**: divida a fatia em PRs por camada —
+  `feat/<contexto>-domain` → `feat/<contexto>-application` → `feat/<contexto>-api` — cada um
+  baseado no anterior e **mesclados em ordem estrita**; docs-only podem ser PRs independentes.
+  PRs pequenos e revisáveis por camada, nunca um PR gigante com tudo junto.
 - **Commits semânticos** (conventional commits): `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:` — ex.: `feat(atendimento): cria caso de uso de aprovação de orçamento`.
 - PRs usam o template (`.github/PULL_REQUEST_TEMPLATE.md`): **WHY / WHAT / HOW / ADDITIONAL DETAILS (evidências)** — evidências (Sonar, cobertura, screenshots) são obrigatórias, alimentam a entrega final.
 
