@@ -4,7 +4,7 @@ Back-end (MVP) do sistema de gestão de uma oficina mecânica: ordens de serviç
 veículos, serviços, peças e estoque — Tech Challenge da Fase 1 do curso **SOAT (Software
 Architecture)**, **Grupo 117**.
 
-> Documentação DDD (Miro, acesso público): **[LINK DO MIRO — preencher]**
+> Documentação DDD (Miro, acesso público): **[board público do grupo](https://miro.com/app/board/uXjVHnu_abs=/?share_link_id=659633037228)**
 > Vídeo da entrega: **[LINK DO VÍDEO — preencher]**
 
 ## Objetivo do projeto
@@ -77,6 +77,11 @@ Alternativa totalmente containerizada: `docker compose --profile full up -d --bu
 ./mvnw verify   # idem + gate de cobertura de 80% nos pacotes domain/application
 ```
 
+## Como contribuir
+
+Branch, commits, PRs empilhados e o que a CI exige estão em [CONTRIBUTING.md](CONTRIBUTING.md).
+As regras completas do repositório continuam em [AGENTS.md](AGENTS.md).
+
 ## Acesso ao Swagger / documentação da API
 
 Com a aplicação no ar: **http://localhost:8080/swagger-ui.html** (OpenAPI em `/v3/api-docs`).
@@ -148,7 +153,7 @@ src/test/java/     testes unitários e de integração (Testcontainers)
 
 ## Documentação DDD
 
-- Board do Miro (acesso público): **[LINK DO MIRO — preencher]**
+- Board do Miro (acesso público): **[board público do grupo](https://miro.com/app/board/uXjVHnu_abs=/?share_link_id=659633037228)**
 - Export no repositório: [`docs/ddd/`](docs/ddd/) (linguagem ubíqua e glossário) e
   [`docs/ddd/event-storming/`](docs/ddd/event-storming/) (um arquivo por fluxo),
   [`docs/diagramas/`](docs/diagramas/) (C4 e domínio).
