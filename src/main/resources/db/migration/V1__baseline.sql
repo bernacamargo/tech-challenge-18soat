@@ -1,0 +1,3 @@
+-- Baseline inicial: nenhuma tabela ainda.
+-- O schema nasce com a primeira fatia vertical (identidadeacesso ou atendimento).
+-- Convencoes: snake_case, nomes em portugues (linguagem ubiqua) — ver docs/ddd/linguagem-ubiqua.md
