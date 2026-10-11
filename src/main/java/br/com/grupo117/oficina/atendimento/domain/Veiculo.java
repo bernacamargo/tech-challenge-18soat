@@ -4,27 +4,32 @@ import java.time.Year;
 import java.util.Objects;
 
 /**
- * Veiculo atendido na oficina. Identificado pela placa; pertence a um cliente,
- * que passa a referencia-lo quando a ordem de servico e aberta.
+ * Veiculo atendido na oficina. Identificado pela placa e pertencente a um cliente.
  */
 public final class Veiculo {
 
     private static final int ANO_MINIMO = 1900;
 
+    private final Cliente cliente;
     private final Placa placa;
     private final String marca;
     private final String modelo;
     private final int ano;
 
-    public Veiculo(Placa placa, String marca, String modelo, int ano) {
+    public Veiculo(Cliente cliente, Placa placa, String marca, String modelo, int ano) {
+        this.cliente = Objects.requireNonNull(cliente, "Cliente do veiculo e obrigatorio");
         this.placa = Objects.requireNonNull(placa, "Placa e obrigatoria");
         this.marca = textoObrigatorio(marca, "Marca do veiculo e obrigatoria");
         this.modelo = textoObrigatorio(modelo, "Modelo do veiculo e obrigatorio");
         this.ano = anoValido(ano);
     }
 
-    public static Veiculo cadastrar(String placa, String marca, String modelo, int ano) {
-        return new Veiculo(Placa.de(placa), marca, modelo, ano);
+    public static Veiculo cadastrar(Cliente cliente, String placa, String marca, String modelo, int ano) {
+        return new Veiculo(cliente, Placa.de(placa), marca, modelo, ano);
+    }
+
+    public Cliente cliente() {
+        return cliente;
     }
 
     public Placa placa() {
@@ -76,6 +81,11 @@ public final class Veiculo {
 
     @Override
     public String toString() {
-        return "Veiculo[placa=" + placa.valor() + ", marca=" + marca + ", modelo=" + modelo + ", ano=" + ano + "]";
+        return "Veiculo[placa=" + placa.valor()
+                + ", marca=" + marca
+                + ", modelo=" + modelo
+                + ", ano=" + ano
+                + ", cliente=" + cliente.cpfCnpj().digitos()
+                + "]";
     }
 }
