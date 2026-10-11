@@ -63,11 +63,13 @@ class ClienteTest {
         Cliente mesmoDocumento = Cliente.cadastrar("Maria S.", "529.982.247-25");
         Cliente outro = Cliente.cadastrar("Joao Lima", "12345678909");
 
-        assertEquals(maria, maria);
+        Object mesmaInstancia = maria;
+        Object outroTipo = new Object();
+        assertEquals(mesmaInstancia, maria);
         assertEquals(maria, mesmoDocumento);
         assertEquals(maria.hashCode(), mesmoDocumento.hashCode());
         assertNotEquals(maria, outro);
         assertNotEquals(maria, null);
-        assertNotEquals(maria, "52998224725");
+        assertNotEquals(outroTipo, maria);
     }
 }
