@@ -14,9 +14,10 @@ import org.junit.jupiter.api.Test;
 class PecaTest {
 
     private static final UUID OS_ID = UUID.randomUUID();
+    private static final Dinheiro PRECO = Dinheiro.de("35.90");
 
     private static Peca filtroDeOleoCom(int quantidade) {
-        Peca peca = Peca.cadastrar("Filtro de oleo", "Filtro para motor 1.0", TipoItemEstoque.PECA, quantidade);
+        Peca peca = Peca.cadastrar("Filtro de oleo", "Filtro motor 1.0", TipoItemEstoque.PECA, PRECO, quantidade);
         peca.limparEventos();
         return peca;
     }
@@ -29,11 +30,12 @@ class PecaTest {
 
     @Test
     void cadastraPecaComDadosValidos() {
-        Peca peca = Peca.cadastrar("  Oleo 5W30  ", "  Frasco de 1 litro ", TipoItemEstoque.INSUMO, 10);
+        Peca peca = Peca.cadastrar("  Oleo 5W30  ", "  Frasco de 1 litro ", TipoItemEstoque.INSUMO, PRECO, 10);
 
         assertEquals("Oleo 5W30", peca.nome());
         assertEquals("Frasco de 1 litro", peca.descricao());
         assertEquals(TipoItemEstoque.INSUMO, peca.tipo());
+        assertEquals(PRECO, peca.precoUnitario());
         assertEquals(10, peca.quantidadeDisponivel());
         assertEquals(0, peca.quantidadeReservada());
         assertEquals(10, peca.quantidadeLivre());
@@ -46,7 +48,7 @@ class PecaTest {
 
     @Test
     void aceitaPecaSemDescricaoEComEstoqueZerado() {
-        Peca peca = Peca.cadastrar("Pastilha de freio", "  ", TipoItemEstoque.PECA, 0);
+        Peca peca = Peca.cadastrar("Pastilha de freio", "  ", TipoItemEstoque.PECA, PRECO, 0);
 
         assertNull(peca.descricao());
         assertEquals(0, peca.quantidadeLivre());
@@ -54,10 +56,25 @@ class PecaTest {
 
     @Test
     void rejeitaDadosInvalidosNoCadastro() {
-        assertThrows(IllegalArgumentException.class, () -> Peca.cadastrar("  ", null, TipoItemEstoque.PECA, 1));
-        assertThrows(IllegalArgumentException.class, () -> Peca.cadastrar(null, null, TipoItemEstoque.PECA, 1));
-        assertThrows(NullPointerException.class, () -> Peca.cadastrar("Vela", null, null, 1));
-        assertThrows(QuantidadeInvalidaException.class, () -> Peca.cadastrar("Vela", null, TipoItemEstoque.PECA, -1));
+        TipoItemEstoque peca = TipoItemEstoque.PECA;
+
+        assertThrows(IllegalArgumentException.class, () -> Peca.cadastrar("  ", null, peca, PRECO, 1));
+        assertThrows(IllegalArgumentException.class, () -> Peca.cadastrar(null, null, peca, PRECO, 1));
+        assertThrows(NullPointerException.class, () -> Peca.cadastrar("Vela", null, null, PRECO, 1));
+        assertThrows(QuantidadeInvalidaException.class, () -> Peca.cadastrar("Vela", null, peca, PRECO, -1));
+    }
+
+    @Test
+    void rejeitaPrecoAusenteOuZerado() {
+        TipoItemEstoque peca = TipoItemEstoque.PECA;
+
+        IllegalArgumentException erro = assertThrows(
+                IllegalArgumentException.class,
+                () -> Peca.cadastrar("Vela", null, peca, Dinheiro.ZERO, 1)
+        );
+
+        assertEquals("Preco unitario da peca deve ser maior que zero", erro.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> Peca.cadastrar("Vela", null, peca, null, 1));
     }
 
     @Test
@@ -205,29 +222,33 @@ class PecaTest {
     void alteraDadosDaPeca() {
         Peca peca = filtroDeOleoCom(5);
 
-        peca.alterarDados(" Filtro de ar ", null, TipoItemEstoque.INSUMO);
+        peca.alterarDados(" Filtro de ar ", null, TipoItemEstoque.INSUMO, Dinheiro.de("42.00"));
 
         assertEquals("Filtro de ar", peca.nome());
         assertNull(peca.descricao());
         assertEquals(TipoItemEstoque.INSUMO, peca.tipo());
+        assertEquals(Dinheiro.de("42"), peca.precoUnitario());
         assertEquals(5, peca.quantidadeDisponivel());
     }
 
     @Test
     void rejeitaAlteracaoInvalidaSemMudarAPeca() {
         Peca peca = filtroDeOleoCom(5);
+        TipoItemEstoque insumo = TipoItemEstoque.INSUMO;
 
-        assertThrows(IllegalArgumentException.class, () -> peca.alterarDados(" ", null, TipoItemEstoque.PECA));
-        assertThrows(NullPointerException.class, () -> peca.alterarDados("Filtro de ar", null, null));
+        assertThrows(IllegalArgumentException.class, () -> peca.alterarDados(" ", null, insumo, PRECO));
+        assertThrows(NullPointerException.class, () -> peca.alterarDados("Filtro de ar", null, null, PRECO));
+        assertThrows(IllegalArgumentException.class, () -> peca.alterarDados("Filtro de ar", null, insumo, null));
         assertEquals("Filtro de oleo", peca.nome());
         assertEquals(TipoItemEstoque.PECA, peca.tipo());
+        assertEquals(PRECO, peca.precoUnitario());
     }
 
     @Test
     void reconstituiPecaPersistidaSemEventos() {
         UUID id = UUID.randomUUID();
 
-        Peca peca = Peca.reconstituir(id, "Vela", "Vela de ignicao", TipoItemEstoque.PECA, 8, 3);
+        Peca peca = Peca.reconstituir(id, "Vela", "Vela de ignicao", TipoItemEstoque.PECA, PRECO, 8, 3);
 
         assertEquals(id, peca.id());
         assertEquals(8, peca.quantidadeDisponivel());
@@ -241,16 +262,16 @@ class PecaTest {
         UUID id = UUID.randomUUID();
 
         assertThrows(IllegalArgumentException.class,
-                () -> Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, 2, 3));
+                () -> Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 3));
         assertThrows(QuantidadeInvalidaException.class,
-                () -> Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, 2, -1));
+                () -> Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, -1));
         assertThrows(NullPointerException.class,
-                () -> Peca.reconstituir(null, "Vela", null, TipoItemEstoque.PECA, 2, 0));
+                () -> Peca.reconstituir(null, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 0));
     }
 
     @Test
     void eventosRetornaCopiaImutavelELimpaEventos() {
-        Peca peca = Peca.cadastrar("Vela", null, TipoItemEstoque.PECA, 1);
+        Peca peca = Peca.cadastrar("Vela", null, TipoItemEstoque.PECA, PRECO, 1);
         List<EventoDeDominio> eventos = peca.eventos();
 
         assertThrows(UnsupportedOperationException.class, eventos::clear);
@@ -262,8 +283,8 @@ class PecaTest {
     @Test
     void identificaPecaPeloId() {
         UUID id = UUID.randomUUID();
-        Peca peca = Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, 2, 0);
-        Peca mesmoId = Peca.reconstituir(id, "Vela NGK", null, TipoItemEstoque.PECA, 9, 1);
+        Peca peca = Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 0);
+        Peca mesmoId = Peca.reconstituir(id, "Vela NGK", null, TipoItemEstoque.PECA, PRECO, 9, 1);
         Peca outra = filtroDeOleoCom(2);
 
         Object mesmaInstancia = peca;

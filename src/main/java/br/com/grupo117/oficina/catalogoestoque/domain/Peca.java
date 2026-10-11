@@ -17,6 +17,7 @@ public final class Peca {
     private String nome;
     private String descricao;
     private TipoItemEstoque tipo;
+    private Dinheiro precoUnitario;
     private int quantidadeDisponivel;
     private int quantidadeReservada;
     private final List<EventoDeDominio> eventos = new ArrayList<>();
@@ -26,6 +27,7 @@ public final class Peca {
             String nome,
             String descricao,
             TipoItemEstoque tipo,
+            Dinheiro precoUnitario,
             int quantidadeDisponivel,
             int quantidadeReservada
     ) {
@@ -33,6 +35,7 @@ public final class Peca {
         this.nome = nomeObrigatorio(nome);
         this.descricao = textoOpcional(descricao);
         this.tipo = Objects.requireNonNull(tipo, "Tipo do item de estoque e obrigatorio");
+        this.precoUnitario = precoValido(precoUnitario);
         if (quantidadeDisponivel < 0 || quantidadeReservada < 0) {
             throw new QuantidadeInvalidaException("Quantidade em estoque nao pode ser negativa");
         }
@@ -43,8 +46,14 @@ public final class Peca {
         this.quantidadeReservada = quantidadeReservada;
     }
 
-    public static Peca cadastrar(String nome, String descricao, TipoItemEstoque tipo, int quantidadeInicial) {
-        Peca peca = new Peca(UUID.randomUUID(), nome, descricao, tipo, quantidadeInicial, 0);
+    public static Peca cadastrar(
+            String nome,
+            String descricao,
+            TipoItemEstoque tipo,
+            Dinheiro precoUnitario,
+            int quantidadeInicial
+    ) {
+        Peca peca = new Peca(UUID.randomUUID(), nome, descricao, tipo, precoUnitario, quantidadeInicial, 0);
         peca.eventos.add(new PecaAdicionada(peca.id, peca.nome, Instant.now()));
         return peca;
     }
@@ -54,17 +63,21 @@ public final class Peca {
             String nome,
             String descricao,
             TipoItemEstoque tipo,
+            Dinheiro precoUnitario,
             int quantidadeDisponivel,
             int quantidadeReservada
     ) {
-        return new Peca(id, nome, descricao, tipo, quantidadeDisponivel, quantidadeReservada);
+        return new Peca(id, nome, descricao, tipo, precoUnitario, quantidadeDisponivel, quantidadeReservada);
     }
 
-    public void alterarDados(String nome, String descricao, TipoItemEstoque tipo) {
+    public void alterarDados(String nome, String descricao, TipoItemEstoque tipo, Dinheiro precoUnitario) {
         String nomeValido = nomeObrigatorio(nome);
-        this.tipo = Objects.requireNonNull(tipo, "Tipo do item de estoque e obrigatorio");
+        TipoItemEstoque tipoValido = Objects.requireNonNull(tipo, "Tipo do item de estoque e obrigatorio");
+        Dinheiro precoValido = precoValido(precoUnitario);
         this.nome = nomeValido;
         this.descricao = textoOpcional(descricao);
+        this.tipo = tipoValido;
+        this.precoUnitario = precoValido;
     }
 
     public void reabastecer(int quantidade) {
@@ -133,6 +146,10 @@ public final class Peca {
         return tipo;
     }
 
+    public Dinheiro precoUnitario() {
+        return precoUnitario;
+    }
+
     public int quantidadeDisponivel() {
         return quantidadeDisponivel;
     }
@@ -153,6 +170,13 @@ public final class Peca {
             throw new IllegalArgumentException("Nome da peca e obrigatorio");
         }
         return nome.trim();
+    }
+
+    private static Dinheiro precoValido(Dinheiro preco) {
+        if (preco == null || !preco.positivo()) {
+            throw new IllegalArgumentException("Preco unitario da peca deve ser maior que zero");
+        }
+        return preco;
     }
 
     private static String textoOpcional(String valor) {
