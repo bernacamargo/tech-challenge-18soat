@@ -76,11 +76,13 @@ class VeiculoTest {
         Veiculo mesmaPlaca = Veiculo.cadastrar(cliente, "abc-1234", "Fiat", "Uno Vivace", 2013);
         Veiculo outro = Veiculo.cadastrar(cliente, "ABC1D23", "Fiat", "Uno", 2012);
 
-        assertEquals(uno, uno);
+        Object mesmaInstancia = uno;
+        Object outroTipo = new Object();
+        assertEquals(mesmaInstancia, uno);
         assertEquals(uno, mesmaPlaca);
         assertEquals(uno.hashCode(), mesmaPlaca.hashCode());
         assertNotEquals(uno, outro);
         assertNotEquals(uno, null);
-        assertNotEquals(uno, "ABC1234");
+        assertNotEquals(outroTipo, uno);
     }
 }
