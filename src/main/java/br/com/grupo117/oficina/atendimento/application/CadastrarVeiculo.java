@@ -22,6 +22,10 @@ public final class CadastrarVeiculo {
         CpfCnpj cpfCnpj = CpfCnpj.de(documentoCliente);
         Cliente cliente = clientes.buscarPorCpfCnpj(cpfCnpj)
                 .orElseThrow(() -> new ClienteNaoEncontradoException(cpfCnpj));
-        return veiculos.salvar(Veiculo.cadastrar(cliente, placa, marca, modelo, ano));
+        Veiculo veiculo = Veiculo.cadastrar(cliente, placa, marca, modelo, ano);
+        if (veiculos.buscarPorPlaca(veiculo.placa()).isPresent()) {
+            throw new VeiculoJaCadastradoException(veiculo.placa());
+        }
+        return veiculos.salvar(veiculo);
     }
 }

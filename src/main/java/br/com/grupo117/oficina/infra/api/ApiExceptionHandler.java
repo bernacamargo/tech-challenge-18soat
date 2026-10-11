@@ -2,6 +2,8 @@ package br.com.grupo117.oficina.infra.api;
 
 import br.com.grupo117.oficina.atendimento.application.ClienteJaCadastradoException;
 import br.com.grupo117.oficina.atendimento.application.ClienteNaoEncontradoException;
+import br.com.grupo117.oficina.atendimento.application.VeiculoJaCadastradoException;
+import br.com.grupo117.oficina.atendimento.application.VeiculoNaoEncontradoException;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpjInvalidoException;
 import br.com.grupo117.oficina.atendimento.domain.PlacaInvalidaException;
 import org.springframework.http.HttpStatus;
@@ -27,13 +29,13 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(new ErroResponse(mensagem));
     }
 
-    @ExceptionHandler(ClienteNaoEncontradoException.class)
-    ResponseEntity<ErroResponse> naoEncontrado(ClienteNaoEncontradoException erro) {
+    @ExceptionHandler({ClienteNaoEncontradoException.class, VeiculoNaoEncontradoException.class})
+    ResponseEntity<ErroResponse> naoEncontrado(RuntimeException erro) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResponse(erro.getMessage()));
     }
 
-    @ExceptionHandler(ClienteJaCadastradoException.class)
-    ResponseEntity<ErroResponse> jaCadastrado(ClienteJaCadastradoException erro) {
+    @ExceptionHandler({ClienteJaCadastradoException.class, VeiculoJaCadastradoException.class})
+    ResponseEntity<ErroResponse> jaCadastrado(RuntimeException erro) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResponse(erro.getMessage()));
     }
 }

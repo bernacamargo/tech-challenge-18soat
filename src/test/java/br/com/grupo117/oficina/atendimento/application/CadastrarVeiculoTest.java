@@ -65,6 +65,23 @@ class CadastrarVeiculoTest {
         assertTrue(veiculos.vazio());
     }
 
+    @Test
+    void placaRepetidaNaoCadastraOutroVeiculo() {
+        ClienteRepositorioFake clientes = new ClienteRepositorioFake();
+        clientes.salvar(Cliente.cadastrar("Maria Souza", "52998224725"));
+        VeiculoRepositorioFake veiculos = new VeiculoRepositorioFake();
+        CadastrarVeiculo casoDeUso = new CadastrarVeiculo(clientes, veiculos);
+        casoDeUso.cadastrar("52998224725", "ABC1D23", "Fiat", "Uno", 2012);
+
+        VeiculoJaCadastradoException erro = assertThrows(
+                VeiculoJaCadastradoException.class,
+                () -> casoDeUso.cadastrar("52998224725", "abc-1d23", "Fiat", "Palio", 2014)
+        );
+
+        assertEquals("Veiculo ja cadastrado: ABC1D23", erro.getMessage());
+        assertEquals(1, veiculos.listar().size());
+    }
+
     private static final class ClienteRepositorioFake implements ClienteRepositorio {
 
         private final Map<CpfCnpj, Cliente> clientes = new HashMap<>();
@@ -101,9 +118,19 @@ class CadastrarVeiculoTest {
         }
 
         @Override
+        public List<Veiculo> listar() {
+            return List.copyOf(veiculos.values());
+        }
+
+        @Override
         public Veiculo salvar(Veiculo veiculo) {
             veiculos.put(veiculo.placa(), veiculo);
             return veiculo;
+        }
+
+        @Override
+        public void remover(Placa placa) {
+            veiculos.remove(placa);
         }
 
         boolean vazio() {
