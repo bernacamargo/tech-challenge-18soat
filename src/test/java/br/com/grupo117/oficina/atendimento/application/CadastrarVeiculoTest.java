@@ -11,6 +11,7 @@ import br.com.grupo117.oficina.atendimento.domain.Placa;
 import br.com.grupo117.oficina.atendimento.domain.PlacaInvalidaException;
 import br.com.grupo117.oficina.atendimento.domain.Veiculo;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -74,9 +75,19 @@ class CadastrarVeiculoTest {
         }
 
         @Override
+        public List<Cliente> listar() {
+            return List.copyOf(clientes.values());
+        }
+
+        @Override
         public Cliente salvar(Cliente cliente) {
             clientes.put(cliente.cpfCnpj(), cliente);
             return cliente;
+        }
+
+        @Override
+        public void remover(CpfCnpj cpfCnpj) {
+            clientes.remove(cpfCnpj);
         }
     }
 
