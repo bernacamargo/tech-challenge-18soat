@@ -1,5 +1,7 @@
 package br.com.grupo117.oficina.atendimento.domain;
 
+import java.time.Instant;
+import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -14,6 +16,7 @@ public final class OrdemDeServico {
     private final String clienteId;
     private final String veiculoId;
     private StatusOS status;
+    private Instant finalizadaEm;
 
     public OrdemDeServico(UUID id, String clienteId, String veiculoId) {
         this.id = Objects.requireNonNull(id, "Identificador da OS é obrigatório");
@@ -38,8 +41,17 @@ public final class OrdemDeServico {
         return status;
     }
 
+    public Optional<Instant> finalizadaEm() {
+        return Optional.ofNullable(finalizadaEm);
+    }
+
     /** Aplica somente as transições consecutivas previstas no Event Storming. */
     public void transicionarPara(StatusOS destino) {
+        transicionarPara(destino, Instant.now());
+    }
+
+    public void transicionarPara(StatusOS destino, Instant momento) {
+        Objects.requireNonNull(momento, "Momento da transição é obrigatório");
         Objects.requireNonNull(destino, "Status de destino é obrigatório");
         boolean permitida = switch (status) {
             case RECEBIDA -> destino == StatusOS.EM_DIAGNOSTICO;
@@ -53,6 +65,9 @@ public final class OrdemDeServico {
             throw new IllegalStateException("Transição de " + status + " para " + destino + " não permitida");
         }
         status = destino;
+        if (destino == StatusOS.FINALIZADA) {
+            finalizadaEm = momento;
+        }
     }
 
     private static String validarIdentificador(String valor, String nome) {
