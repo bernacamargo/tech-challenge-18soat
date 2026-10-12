@@ -52,3 +52,14 @@ existente, sem afirmar validação ponta a ponta de login com Keycloak.
 
 `OrdemDeServicoApiIntegrationTest` estende `AbstractIntegrationTest` e verifica criação,
 consultas, preservação da finalização, 400/401/403/404, Swagger e rollback com PostgreSQL real.
+
+## Consulta pública — issue #37
+
+`GET /api/acompanhamento/ordens-de-servico/{id}` não exige autenticação. A oficina informa ao
+cliente o UUID retornado na criação administrativa. A resposta contém somente `status` e
+`finalizadaEm`; não expõe documento, placa, cliente, itens ou valores. Não verifica propriedade
+da OS (ADR 0009). UUID inexistente retorna 404; formato inválido retorna 400.
+
+A liberação é exclusiva para leitura dessa rota. Criação, listagem e detalhe administrativo
+continuam exigindo JWT e os papéis existentes. O Swagger documenta a consulta pública sem
+esquema de autenticação.
