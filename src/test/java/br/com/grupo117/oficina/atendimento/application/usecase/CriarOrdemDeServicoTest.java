@@ -148,6 +148,11 @@ class CriarOrdemDeServicoTest {
         }
 
         @Override
+        public List<OrdemDeServico> listar() {
+            return List.copyOf(salvas);
+        }
+
+        @Override
         public OrdemDeServico salvar(OrdemDeServico os) {
             salvas.add(os);
             return os;

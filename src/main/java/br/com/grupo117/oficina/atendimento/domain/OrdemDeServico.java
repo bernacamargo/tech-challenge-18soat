@@ -25,6 +25,20 @@ public final class OrdemDeServico {
         this.status = StatusOS.RECEBIDA;
     }
 
+    /** Reconstitui o estado persistido sem executar ações ou transições de negócio. */
+    public static OrdemDeServico restaurar(UUID id, String clienteId, String veiculoId,
+                                           StatusOS status, Instant finalizadaEm) {
+        Objects.requireNonNull(status, "Status é obrigatório");
+        boolean concluida = status == StatusOS.FINALIZADA || status == StatusOS.ENTREGUE;
+        if (concluida != (finalizadaEm != null)) {
+            throw new IllegalArgumentException("Finalização incompatível com o status da OS");
+        }
+        OrdemDeServico os = new OrdemDeServico(id, clienteId, veiculoId);
+        os.status = status;
+        os.finalizadaEm = finalizadaEm;
+        return os;
+    }
+
     public UUID id() {
         return id;
     }
