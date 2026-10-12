@@ -1,8 +1,7 @@
 # API de Ordens de Serviço — base da issue #36
 
-Esta implementação é parcial: itens e orçamento dependem das issues #34 e #38. A issue #36
-permanece pendente até esses dados integrarem persistência e detalhamento. Não há campos
-fictícios de itens/orçamento na resposta atual.
+O detalhe administrativo inclui itens persistidos e orçamento, quando gerado. A inclusão de
+itens e a geração ainda aguardam endpoints próprios e integração com catálogo/estoque.
 
 ## Endpoints
 
@@ -10,7 +9,7 @@ fictícios de itens/orçamento na resposta atual.
 |---|---|---|---|
 | POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida; cadastra cliente/veículo ausentes |
 | GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista ordenada pelo UUID |
-| GET | `/api/ordens-de-servico/{id}` | ATENDENTE, MECANICO, ADMINISTRADOR | Detalhe básico ou 404 |
+| GET | `/api/ordens-de-servico/{id}` | ATENDENTE, MECANICO, ADMINISTRADOR | Detalhe com itens/orçamento ou 404 |
 
 Requisição de criação:
 
@@ -26,7 +25,9 @@ Requisição de criação:
 ```
 
 A resposta contém `id`, `clienteId` (documento normalizado), `veiculoId` (placa normalizada),
-`status` e `finalizadaEm` (nulo até a conclusão). Criação retorna 201 e cabeçalho Location.
+`status`, `finalizadaEm` (nulo até a conclusão), `itens` e `orcamento`.
+Cada item contém UUID, referência ao catálogo, tipo, descrição, quantidade, preço unitário e
+subtotal. O orçamento contém o total; antes da geração é nulo e OS nova tem itens vazios. Criação retorna 201 e cabeçalho Location.
 Veículo já cadastrado deve pertencer ao cliente informado. Não há endpoint de transição nesta
 base; os casos de uso da #35 ainda não estão expostos via REST.
 
@@ -63,3 +64,7 @@ da OS (ADR 0009). UUID inexistente retorna 404; formato inválido retorna 400.
 A liberação é exclusiva para leitura dessa rota. Criação, listagem e detalhe administrativo
 continuam exigindo JWT e os papéis existentes. O Swagger documenta a consulta pública sem
 esquema de autenticação.
+
+A migration V5 persiste os itens ordenados e o total do orçamento (ADR 0011).
+`ItensOrcamentoPersistenceIntegrationTest` verifica gravações sucessivas, valores e identidade
+dos itens, detalhe administrativo, isolamento da consulta pública e rollback de gravação.
