@@ -9,6 +9,7 @@ import br.com.grupo117.oficina.atendimento.domain.Cliente;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpj;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpjInvalidoException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -72,10 +73,20 @@ class IdentificarClienteTest {
         }
 
         @Override
+        public List<Cliente> listar() {
+            return List.copyOf(clientes.values());
+        }
+
+        @Override
         public Cliente salvar(Cliente cliente) {
             salvamentos++;
             clientes.put(cliente.cpfCnpj(), cliente);
             return cliente;
+        }
+
+        @Override
+        public void remover(CpfCnpj cpfCnpj) {
+            clientes.remove(cpfCnpj);
         }
 
         int quantidade() {
