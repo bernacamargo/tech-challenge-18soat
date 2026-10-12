@@ -245,10 +245,10 @@ class PecaTest {
     }
 
     @Test
-    void reconstituiPecaPersistidaSemEventos() {
+    void restauraPecaPersistidaSemEventos() {
         UUID id = UUID.randomUUID();
 
-        Peca peca = Peca.reconstituir(id, "Vela", "Vela de ignicao", TipoItemEstoque.PECA, PRECO, 8, 3);
+        Peca peca = Peca.restaurar(id, "Vela", "Vela de ignicao", TipoItemEstoque.PECA, PRECO, 8, 3);
 
         assertEquals(id, peca.id());
         assertEquals(8, peca.quantidadeDisponivel());
@@ -258,15 +258,15 @@ class PecaTest {
     }
 
     @Test
-    void rejeitaReconstituicaoInconsistente() {
+    void rejeitaRestauracaoInconsistente() {
         UUID id = UUID.randomUUID();
 
         assertThrows(IllegalArgumentException.class,
-                () -> Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 3));
+                () -> Peca.restaurar(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 3));
         assertThrows(QuantidadeInvalidaException.class,
-                () -> Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, -1));
+                () -> Peca.restaurar(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, -1));
         assertThrows(NullPointerException.class,
-                () -> Peca.reconstituir(null, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 0));
+                () -> Peca.restaurar(null, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 0));
     }
 
     @Test
@@ -283,8 +283,8 @@ class PecaTest {
     @Test
     void identificaPecaPeloId() {
         UUID id = UUID.randomUUID();
-        Peca peca = Peca.reconstituir(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 0);
-        Peca mesmoId = Peca.reconstituir(id, "Vela NGK", null, TipoItemEstoque.PECA, PRECO, 9, 1);
+        Peca peca = Peca.restaurar(id, "Vela", null, TipoItemEstoque.PECA, PRECO, 2, 0);
+        Peca mesmoId = Peca.restaurar(id, "Vela NGK", null, TipoItemEstoque.PECA, PRECO, 9, 1);
         Peca outra = filtroDeOleoCom(2);
 
         Object mesmaInstancia = peca;

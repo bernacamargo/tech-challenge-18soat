@@ -61,10 +61,10 @@ class ReservaDeEstoqueTest {
     }
 
     @Test
-    void reconstituiReservaPersistida() {
+    void restauraReservaPersistida() {
         UUID id = UUID.randomUUID();
 
-        ReservaDeEstoque reserva = ReservaDeEstoque.reconstituir(id, PECA_ID, OS_ID, 3, StatusReserva.BAIXADA);
+        ReservaDeEstoque reserva = ReservaDeEstoque.restaurar(id, PECA_ID, OS_ID, 3, StatusReserva.BAIXADA);
 
         assertEquals(id, reserva.id());
         assertEquals(3, reserva.quantidade().valor());
@@ -76,23 +76,23 @@ class ReservaDeEstoqueTest {
         UUID id = UUID.randomUUID();
 
         assertThrows(NullPointerException.class,
-                () -> ReservaDeEstoque.reconstituir(null, PECA_ID, OS_ID, 1, StatusReserva.ATIVA));
+                () -> ReservaDeEstoque.restaurar(null, PECA_ID, OS_ID, 1, StatusReserva.ATIVA));
         assertThrows(NullPointerException.class,
-                () -> ReservaDeEstoque.reconstituir(id, null, OS_ID, 1, StatusReserva.ATIVA));
+                () -> ReservaDeEstoque.restaurar(id, null, OS_ID, 1, StatusReserva.ATIVA));
         assertThrows(NullPointerException.class,
-                () -> ReservaDeEstoque.reconstituir(id, PECA_ID, null, 1, StatusReserva.ATIVA));
+                () -> ReservaDeEstoque.restaurar(id, PECA_ID, null, 1, StatusReserva.ATIVA));
         assertThrows(NullPointerException.class,
-                () -> ReservaDeEstoque.reconstituir(id, PECA_ID, OS_ID, 1, null));
+                () -> ReservaDeEstoque.restaurar(id, PECA_ID, OS_ID, 1, null));
         assertThrows(NullPointerException.class, () -> ReservaDeEstoque.criar(PECA_ID, OS_ID, null));
         assertThrows(QuantidadeInvalidaException.class,
-                () -> ReservaDeEstoque.reconstituir(id, PECA_ID, OS_ID, 0, StatusReserva.ATIVA));
+                () -> ReservaDeEstoque.restaurar(id, PECA_ID, OS_ID, 0, StatusReserva.ATIVA));
     }
 
     @Test
     void identificaReservaPeloId() {
         UUID id = UUID.randomUUID();
-        ReservaDeEstoque reserva = ReservaDeEstoque.reconstituir(id, PECA_ID, OS_ID, 1, StatusReserva.ATIVA);
-        ReservaDeEstoque mesmoId = ReservaDeEstoque.reconstituir(id, PECA_ID, OS_ID, 5, StatusReserva.BAIXADA);
+        ReservaDeEstoque reserva = ReservaDeEstoque.restaurar(id, PECA_ID, OS_ID, 1, StatusReserva.ATIVA);
+        ReservaDeEstoque mesmoId = ReservaDeEstoque.restaurar(id, PECA_ID, OS_ID, 5, StatusReserva.BAIXADA);
         ReservaDeEstoque outra = novaReserva();
 
         Object mesmaInstancia = reserva;

@@ -58,7 +58,7 @@ public final class Peca {
         return peca;
     }
 
-    public static Peca reconstituir(
+    public static Peca restaurar(
             UUID id,
             String nome,
             String descricao,

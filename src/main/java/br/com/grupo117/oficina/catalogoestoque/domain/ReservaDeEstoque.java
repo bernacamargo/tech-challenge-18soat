@@ -34,7 +34,7 @@ public final class ReservaDeEstoque {
         return new ReservaDeEstoque(UUID.randomUUID(), pecaId, ordemDeServicoId, quantidade, StatusReserva.ATIVA);
     }
 
-    public static ReservaDeEstoque reconstituir(
+    public static ReservaDeEstoque restaurar(
             UUID id,
             UUID pecaId,
             UUID ordemDeServicoId,
