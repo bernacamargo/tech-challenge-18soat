@@ -15,7 +15,6 @@ nulo e rejeição dos cinco estados inválidos, sem salvar a OS nesses casos.
 
 ## Integração pendente
 
-O caso de uso ainda não está ligado ao Spring/REST. O adaptador JPA atual não persiste itens
-nem orçamento; não ligar este caso de uso a ele antes da evolução da #36, para evitar perda do
-estado. A geração em memória está validada; a persistência deverá preservar itens/preços e o
-orçamento ao reconstituir o agregado. Envio ao cliente, aprovação e baixa não fazem parte da #38.
+O caso de uso ainda não está ligado ao Spring/REST. O adaptador JPA agora preserva itens, preços
+e total do orçamento, com verificação de consistência ao reconstituir o agregado (ADR 0011).
+O detalhe administrativo expõe esses dados. Envio ao cliente, aprovação e baixa não fazem parte da #38.

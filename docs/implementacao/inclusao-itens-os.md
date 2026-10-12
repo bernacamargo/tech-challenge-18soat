@@ -30,11 +30,10 @@ janela de concorrência entre consulta de saldo e reserva.
 
 A issue #34 não está concluída ponta a ponta. Os casos de uso são testados com fakes e **não
 estão registrados como beans nem expostos por endpoints**. Dependem dos adaptadores de catálogo
-e estoque (#24/#25/#30), do alinhamento de identificadores e da persistência dos itens da OS.
+e estoque (#24/#25/#30) e do alinhamento de identificadores.
 
-O adaptador JPA atual da #36 persiste somente os dados básicos; **não deve ser ligado aos novos
-casos de uso antes de persistir/reconstituir os itens**, pois perderia a coleção na gravação/leitura.
-A evolução deve incluir migration, mapeamento JPA e testes de round-trip/detalhamento.
+O adaptador JPA persiste e reconstitui itens e orçamento via migration V5, com testes em
+PostgreSQL e exposição no detalhe administrativo (ADR 0011).
 
 Reserva e gravação da OS devem participar da mesma transação Postgres na integração, garantindo
 rollback da reserva se a gravação falhar. Os fakes não demonstram rollback, concorrência ou

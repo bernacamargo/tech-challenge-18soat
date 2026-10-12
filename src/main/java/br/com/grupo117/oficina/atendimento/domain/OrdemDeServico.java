@@ -44,6 +44,23 @@ public final class OrdemDeServico {
         return os;
     }
 
+    public static OrdemDeServico restaurar(UUID id, String clienteId, String veiculoId,
+                                           StatusOS status, Instant finalizadaEm,
+                                           List<ItemDaOS> itens, Orcamento orcamento) {
+        OrdemDeServico os = restaurar(id, clienteId, veiculoId, status, finalizadaEm);
+        List<ItemDaOS> copia = List.copyOf(itens);
+        if (copia.stream().map(ItemDaOS::id).distinct().count() != copia.size()) {
+            throw new IllegalArgumentException("Identificador de item duplicado na OS persistida");
+        }
+        if (orcamento != null && (status == StatusOS.RECEBIDA || status == StatusOS.EM_DIAGNOSTICO
+                || !orcamento.itens().equals(copia))) {
+            throw new IllegalArgumentException("Orçamento incompatível com o estado persistido da OS");
+        }
+        os.itens.addAll(copia);
+        os.orcamento = orcamento;
+        return os;
+    }
+
     public UUID id() {
         return id;
     }
