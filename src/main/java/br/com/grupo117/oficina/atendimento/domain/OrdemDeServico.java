@@ -1,0 +1,64 @@
+package br.com.grupo117.oficina.atendimento.domain;
+
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Agregado responsável pelo ciclo de vida da OS.
+ * Cliente e veículo são referenciados por seus identificadores (documento e placa).
+ * A identificação e validação desses cadastros cabe ao caso de uso de criação.
+ */
+public final class OrdemDeServico {
+
+    private final UUID id;
+    private final String clienteId;
+    private final String veiculoId;
+    private StatusOS status;
+
+    public OrdemDeServico(UUID id, String clienteId, String veiculoId) {
+        this.id = Objects.requireNonNull(id, "Identificador da OS é obrigatório");
+        this.clienteId = validarIdentificador(clienteId, "Cliente");
+        this.veiculoId = validarIdentificador(veiculoId, "Veículo");
+        this.status = StatusOS.RECEBIDA;
+    }
+
+    public UUID id() {
+        return id;
+    }
+
+    public String clienteId() {
+        return clienteId;
+    }
+
+    public String veiculoId() {
+        return veiculoId;
+    }
+
+    public StatusOS status() {
+        return status;
+    }
+
+    /** Aplica somente as transições consecutivas previstas no Event Storming. */
+    public void transicionarPara(StatusOS destino) {
+        Objects.requireNonNull(destino, "Status de destino é obrigatório");
+        boolean permitida = switch (status) {
+            case RECEBIDA -> destino == StatusOS.EM_DIAGNOSTICO;
+            case EM_DIAGNOSTICO -> destino == StatusOS.AGUARDANDO_APROVACAO;
+            case AGUARDANDO_APROVACAO -> destino == StatusOS.EM_EXECUCAO;
+            case EM_EXECUCAO -> destino == StatusOS.FINALIZADA;
+            case FINALIZADA -> destino == StatusOS.ENTREGUE;
+            case ENTREGUE -> false;
+        };
+        if (!permitida) {
+            throw new IllegalStateException("Transição de " + status + " para " + destino + " não permitida");
+        }
+        status = destino;
+    }
+
+    private static String validarIdentificador(String valor, String nome) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(nome + " é obrigatório");
+        }
+        return valor;
+    }
+}
