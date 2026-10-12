@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Agregado responsável pelo ciclo de vida da OS.
@@ -17,6 +19,7 @@ public final class OrdemDeServico {
     private final String veiculoId;
     private StatusOS status;
     private Instant finalizadaEm;
+    private final List<ItemDaOS> itens = new ArrayList<>();
 
     public OrdemDeServico(UUID id, String clienteId, String veiculoId) {
         this.id = Objects.requireNonNull(id, "Identificador da OS é obrigatório");
@@ -57,6 +60,23 @@ public final class OrdemDeServico {
 
     public Optional<Instant> finalizadaEm() {
         return Optional.ofNullable(finalizadaEm);
+    }
+
+    public List<ItemDaOS> itens() { return List.copyOf(itens); }
+
+    public void validarInclusaoDeItem() {
+        if (status != StatusOS.RECEBIDA && status != StatusOS.EM_DIAGNOSTICO) {
+            throw new IllegalStateException("Inclusão de itens não permitida em " + status);
+        }
+    }
+
+    public void incluirItem(ItemDaOS item) {
+        Objects.requireNonNull(item, "Item é obrigatório");
+        validarInclusaoDeItem();
+        if (itens.stream().anyMatch(existente -> existente.id().equals(item.id()))) {
+            throw new IllegalArgumentException("Identificador de item já incluído na OS");
+        }
+        itens.add(item);
     }
 
     /** Aplica somente as transições consecutivas previstas no Event Storming. */
