@@ -13,8 +13,18 @@ Fluxos de ajuste após rejeição serão tratados na #40.
 Testes com ports fake verificam total, quantidades, estado, imutabilidade, OS ausente, identificador
 nulo e rejeição dos cinco estados inválidos, sem salvar a OS nesses casos.
 
-## Integração pendente
+## Integração REST e persistência
 
-O caso de uso ainda não está ligado ao Spring/REST. O adaptador JPA agora preserva itens, preços
-e total do orçamento, com verificação de consistência ao reconstituir o agregado (ADR 0011).
-O detalhe administrativo expõe esses dados. Envio ao cliente, aprovação e baixa não fazem parte da #38.
+`POST /api/ordens-de-servico/{id}/orcamento` aciona o caso de uso por
+`OrdemDeServicoService`, em transação, exigindo ATENDENTE ou ADMINISTRADOR. Sem corpo de
+requisição; retorna a OS com orçamento e status atualizado. OS vazia retorna 400 e geração
+fora de Em diagnóstico retorna 409. Repetição não sobrescreve o orçamento anterior.
+
+O adaptador JPA preserva itens, preços e total, verificando consistência ao reconstituir o
+agregado (ADR 0011). Testes de integração cobrem geração, consulta, segurança e rollback real.
+
+## Pendências
+
+Inclusão real de itens depende dos adaptadores de catálogo/estoque e endpoints da #34.
+Envio de e-mail ao cliente, aprovação e baixa não fazem parte deste endpoint. A entrega completa
+da #38 deve ser avaliada junto ao fluxo de envio previsto no enunciado e no ADR 0007.
