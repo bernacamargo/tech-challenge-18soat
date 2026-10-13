@@ -13,4 +13,9 @@ public class OrdemDeServicoExceptionHandler {
     public ResponseEntity<ErroResponse> naoEncontrada(OrdemDeServicoNaoEncontradaException erro) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResponse(erro.getMessage()));
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErroResponse> estadoInvalido(IllegalStateException erro) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResponse(erro.getMessage()));
+    }
 }

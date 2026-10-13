@@ -3,6 +3,8 @@ package br.com.grupo117.oficina.atendimento.infrastructure.api;
 import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
 import br.com.grupo117.oficina.atendimento.infrastructure.service.OrdemDeServicoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -44,5 +46,35 @@ public class OrdemDeServicoController {
     @Operation(summary = "Detalha uma OS", description = "Inclui itens com preços registrados e orçamento quando gerado")
     public OrdemDeServicoResponse detalhar(@PathVariable UUID id) {
         return OrdemDeServicoResponse.de(service.detalhar(id));
+    }
+
+    @PostMapping("/{id}/diagnostico")
+    @PreAuthorize("hasAnyRole('MECANICO', 'ADMINISTRADOR')")
+    @Operation(summary = "Inicia o diagnóstico", description = "Altera Recebida para Em diagnóstico. Não recebe corpo.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OS atualizada"),
+            @ApiResponse(responseCode = "404", description = "OS não encontrada"),
+            @ApiResponse(responseCode = "409", description = "Transição não permitida no estado atual")})
+    public OrdemDeServicoResponse iniciarDiagnostico(@PathVariable UUID id) {
+        return OrdemDeServicoResponse.de(service.iniciarDiagnostico(id));
+    }
+
+    @PostMapping("/{id}/conclusao")
+    @PreAuthorize("hasAnyRole('MECANICO', 'ADMINISTRADOR')")
+    @Operation(summary = "Conclui os serviços", description = "Altera Em execução para Finalizada e registra o horário do servidor. Não recebe corpo.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OS finalizada"),
+            @ApiResponse(responseCode = "404", description = "OS não encontrada"),
+            @ApiResponse(responseCode = "409", description = "Transição não permitida no estado atual")})
+    public OrdemDeServicoResponse concluirServicos(@PathVariable UUID id) {
+        return OrdemDeServicoResponse.de(service.concluirServicos(id));
+    }
+
+    @PostMapping("/{id}/entrega")
+    @PreAuthorize("hasAnyRole('ATENDENTE', 'ADMINISTRADOR')")
+    @Operation(summary = "Registra a entrega", description = "Altera Finalizada para Entregue e preserva o horário da conclusão. Não recebe corpo.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Entrega registrada"),
+            @ApiResponse(responseCode = "404", description = "OS não encontrada"),
+            @ApiResponse(responseCode = "409", description = "Transição não permitida no estado atual")})
+    public OrdemDeServicoResponse registrarEntrega(@PathVariable UUID id) {
+        return OrdemDeServicoResponse.de(service.registrarEntrega(id));
     }
 }
