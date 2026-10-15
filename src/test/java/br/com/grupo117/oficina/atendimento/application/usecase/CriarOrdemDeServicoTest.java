@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -140,6 +141,11 @@ class CriarOrdemDeServicoTest {
 
     private static final class OrdensFake implements OrdemDeServicoRepositorio {
         private final List<OrdemDeServico> salvas = new ArrayList<>();
+
+        @Override
+        public Optional<OrdemDeServico> buscarPorId(UUID id) {
+            return salvas.stream().filter(os -> os.id().equals(id)).findFirst();
+        }
 
         @Override
         public OrdemDeServico salvar(OrdemDeServico os) {
