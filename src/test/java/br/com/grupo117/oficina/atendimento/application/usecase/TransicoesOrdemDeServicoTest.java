@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -148,6 +149,11 @@ class TransicoesOrdemDeServicoTest {
         public Optional<OrdemDeServico> buscarPorId(UUID id) {
             consultas++;
             return Optional.ofNullable(os).filter(ordem -> ordem.id().equals(id));
+        }
+
+        @Override
+        public List<OrdemDeServico> listar() {
+            return os == null ? List.of() : List.of(os);
         }
 
         @Override
