@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = OrdemDeServicoController.class)
+@RestControllerAdvice(assignableTypes = {OrdemDeServicoController.class, AcompanhamentoOrdemDeServicoController.class})
 public class OrdemDeServicoExceptionHandler {
     @ExceptionHandler(OrdemDeServicoNaoEncontradaException.class)
     public ResponseEntity<ErroResponse> naoEncontrada(OrdemDeServicoNaoEncontradaException erro) {
