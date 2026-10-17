@@ -51,7 +51,7 @@ public abstract class AbstractIntegrationTest {
     void limparDados() throws Exception {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
-            statement.execute("TRUNCATE TABLE cliente CASCADE");
+            statement.execute("TRUNCATE TABLE cliente, servico CASCADE");
         }
     }
 
