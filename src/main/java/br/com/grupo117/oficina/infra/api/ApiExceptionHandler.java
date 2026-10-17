@@ -6,6 +6,8 @@ import br.com.grupo117.oficina.atendimento.application.VeiculoJaCadastradoExcept
 import br.com.grupo117.oficina.atendimento.application.VeiculoNaoEncontradoException;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpjInvalidoException;
 import br.com.grupo117.oficina.atendimento.domain.PlacaInvalidaException;
+import br.com.grupo117.oficina.catalogoestoque.application.ServicoNaoEncontradoException;
+import br.com.grupo117.oficina.catalogoestoque.domain.DinheiroInvalidoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,7 +17,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    @ExceptionHandler({CpfCnpjInvalidoException.class, PlacaInvalidaException.class, IllegalArgumentException.class})
+    @ExceptionHandler({
+            CpfCnpjInvalidoException.class,
+            PlacaInvalidaException.class,
+            DinheiroInvalidoException.class,
+            IllegalArgumentException.class
+    })
     ResponseEntity<ErroResponse> requisicaoInvalida(RuntimeException erro) {
         return ResponseEntity.badRequest().body(new ErroResponse(erro.getMessage()));
     }
@@ -29,7 +36,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(new ErroResponse(mensagem));
     }
 
-    @ExceptionHandler({ClienteNaoEncontradoException.class, VeiculoNaoEncontradoException.class})
+    @ExceptionHandler({
+            ClienteNaoEncontradoException.class,
+            VeiculoNaoEncontradoException.class,
+            ServicoNaoEncontradoException.class
+    })
     ResponseEntity<ErroResponse> naoEncontrado(RuntimeException erro) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResponse(erro.getMessage()));
     }
