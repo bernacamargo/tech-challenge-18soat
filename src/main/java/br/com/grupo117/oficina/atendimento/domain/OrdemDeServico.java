@@ -64,6 +64,29 @@ public final class OrdemDeServico {
         return os;
     }
 
+    /** Restaura decisões já persistidas, sem aprovar, rejeitar ou movimentar estoque. */
+    public static OrdemDeServico restaurar(UUID id, String clienteId, String veiculoId,
+                                           StatusOS status, Instant finalizadaEm,
+                                           List<ItemDaOS> itens, Orcamento orcamento,
+                                           Instant iniciadaEm, RejeicaoOrcamento rejeicaoOrcamento) {
+        OrdemDeServico os = restaurar(id, clienteId, veiculoId, status, finalizadaEm, itens, orcamento);
+        boolean emExecucaoOuConcluida = status == StatusOS.EM_EXECUCAO
+                || status == StatusOS.FINALIZADA || status == StatusOS.ENTREGUE;
+        if (iniciadaEm != null && (!emExecucaoOuConcluida || orcamento == null)) {
+            throw new IllegalArgumentException("Início incompatível com o estado persistido da OS");
+        }
+        if (iniciadaEm != null && finalizadaEm != null && finalizadaEm.isBefore(iniciadaEm)) {
+            throw new IllegalArgumentException("Finalização não pode anteceder o início da execução");
+        }
+        if (rejeicaoOrcamento != null && (status != StatusOS.AGUARDANDO_APROVACAO
+                || orcamento == null || iniciadaEm != null)) {
+            throw new IllegalArgumentException("Rejeição incompatível com o estado persistido da OS");
+        }
+        os.iniciadaEm = iniciadaEm;
+        os.rejeicaoOrcamento = rejeicaoOrcamento;
+        return os;
+    }
+
     public UUID id() {
         return id;
     }
