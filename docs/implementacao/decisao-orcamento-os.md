@@ -13,8 +13,8 @@
 
 Estes casos de uso NÃO são beans Spring nem endpoints. O adaptador JPA agora preserva
 `iniciadaEm` e `rejeicaoOrcamento` pela migration V5.1 e restauração completa (ADR 0013).
-Antes do wiring ainda são necessários adaptador de baixa, transação conjunta com o estoque,
-DTOs administrativos e autorização dos comandos do cliente.
+Antes do wiring ainda são necessários adaptador de baixa, transação conjunta com o estoque
+e autorização dos comandos do cliente. Os DTOs administrativos já expõem início e rejeição.
 
 A PR #51 propõe `EstoqueDaOrdemDeServico.baixarReservasDaOrdemDeServico(osId)`, retornando uma
 contagem. Atendimento propõe um port próprio com sucesso integral ou exceção; o adaptador futuro
@@ -28,8 +28,9 @@ Falha na baixa impede mutação/salvamento da OS; falha posterior ao consumo dev
 ambos pela transação real. Não há compensação artificial no caso de uso.
 
 Revisão/reabertura, versionamento e liberação das reservas após rejeição estão fora desta
-etapa e precisam de fluxo definido. A métrica de tempo médio será tratada por observabilidade por outro responsável, conforme
-alinhamento do grupo; cálculo e endpoint próprios não fazem parte desta entrega.
+etapa e precisam de fluxo definido. A métrica de tempo médio será tratada por observabilidade
+por outro responsável, conforme alinhamento do grupo; cálculo e endpoint próprios não fazem
+parte desta entrega.
 
 ## Persistência da decisão
 
@@ -40,5 +41,13 @@ A baixa usada no teste de aprovação é fake: a atomicidade com o estoque real 
 
 `DecisaoOrcamentoMigrationIntegrationTest` migra um schema temporário da V5 para V5.1 com
 OS e itens existentes, preservando dados e mantendo novos campos nulos. Não atribui início
-fictício a OS legadas; isso precisa ser considerado nas métricas de observabilidade. Os DTOs públicos
-e administrativos não foram ampliados nesta etapa.
+fictício a OS legadas; isso precisa ser considerado nas métricas de observabilidade.
+A consulta pública permanece limitada ao andamento. O detalhe/listagem administrativos expõem `iniciadaEm` e `rejeicaoOrcamento` por DTOs próprios, com campos nulos quando ausentes.
+
+## Consulta administrativa da decisão
+
+`RejeicaoOrcamentoResponse` representa momento e motivo sem expor o value object diretamente.
+`OrdemDeServicoResponse` inclui esse objeto e o início, documentados no Swagger. A inclusão é
+compartilhada por listagem, detalhe e respostas dos comandos administrativos existentes.
+Testes de integração verificam os três papéis administrativos e impedem vazamento dos novos
+campos na consulta pública, cuja resposta e esquema continuam com apenas dois campos.
