@@ -1,6 +1,7 @@
 package br.com.grupo117.oficina.atendimento.domain;
 
 import java.time.Instant;
+import br.com.grupo117.oficina.atendimento.domain.valueobject.Orcamento;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
@@ -19,6 +20,7 @@ public final class OrdemDeServico {
     private final String veiculoId;
     private StatusOS status;
     private Instant finalizadaEm;
+    private Orcamento orcamento;
     private final List<ItemDaOS> itens = new ArrayList<>();
 
     public OrdemDeServico(UUID id, String clienteId, String veiculoId) {
@@ -60,6 +62,18 @@ public final class OrdemDeServico {
 
     public Optional<Instant> finalizadaEm() {
         return Optional.ofNullable(finalizadaEm);
+    }
+
+    public Optional<Orcamento> orcamento() { return Optional.ofNullable(orcamento); }
+
+    public Orcamento gerarOrcamento() {
+        if (status != StatusOS.EM_DIAGNOSTICO) {
+            throw new IllegalStateException("Geração de orçamento não permitida em " + status);
+        }
+        Orcamento gerado = new Orcamento(itens);
+        transicionarPara(StatusOS.AGUARDANDO_APROVACAO);
+        orcamento = gerado;
+        return gerado;
     }
 
     public List<ItemDaOS> itens() { return List.copyOf(itens); }
