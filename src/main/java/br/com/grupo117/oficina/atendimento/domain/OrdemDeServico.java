@@ -2,6 +2,7 @@ package br.com.grupo117.oficina.atendimento.domain;
 
 import java.time.Instant;
 import br.com.grupo117.oficina.atendimento.domain.valueobject.Orcamento;
+import br.com.grupo117.oficina.atendimento.domain.valueobject.RejeicaoOrcamento;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
@@ -21,6 +22,8 @@ public final class OrdemDeServico {
     private StatusOS status;
     private Instant finalizadaEm;
     private Orcamento orcamento;
+    private Instant iniciadaEm;
+    private RejeicaoOrcamento rejeicaoOrcamento;
     private final List<ItemDaOS> itens = new ArrayList<>();
 
     public OrdemDeServico(UUID id, String clienteId, String veiculoId) {
@@ -83,6 +86,38 @@ public final class OrdemDeServico {
 
     public Optional<Orcamento> orcamento() { return Optional.ofNullable(orcamento); }
 
+    public Optional<Instant> iniciadaEm() { return Optional.ofNullable(iniciadaEm); }
+
+    public Optional<RejeicaoOrcamento> rejeicaoOrcamento() {
+        return Optional.ofNullable(rejeicaoOrcamento);
+    }
+
+    public void validarAprovacaoOrcamento() {
+        validarDecisaoOrcamento();
+    }
+
+    public void aprovarOrcamento(Instant momento) {
+        Objects.requireNonNull(momento, "Momento da aprovação é obrigatório");
+        validarAprovacaoOrcamento();
+        transicionarPara(StatusOS.EM_EXECUCAO, momento);
+        iniciadaEm = momento;
+    }
+
+    public void rejeitarOrcamento(Instant momento, String motivo) {
+        validarDecisaoOrcamento();
+        RejeicaoOrcamento rejeicao = new RejeicaoOrcamento(momento, motivo);
+        rejeicaoOrcamento = rejeicao;
+    }
+
+    private void validarDecisaoOrcamento() {
+        if (status != StatusOS.AGUARDANDO_APROVACAO || orcamento == null) {
+            throw new IllegalStateException("Decisão exige orçamento gerado em Aguardando aprovação");
+        }
+        if (rejeicaoOrcamento != null) {
+            throw new IllegalStateException("Orçamento rejeitado exige revisão antes de nova decisão");
+        }
+    }
+
     public Orcamento gerarOrcamento() {
         if (status != StatusOS.EM_DIAGNOSTICO) {
             throw new IllegalStateException("Geração de orçamento não permitida em " + status);
@@ -128,6 +163,12 @@ public final class OrdemDeServico {
         };
         if (!permitida) {
             throw new IllegalStateException("Transição de " + status + " para " + destino + " não permitida");
+        }
+        if (destino == StatusOS.EM_EXECUCAO && rejeicaoOrcamento != null) {
+            throw new IllegalStateException("Orçamento rejeitado não pode iniciar execução");
+        }
+        if (destino == StatusOS.FINALIZADA && iniciadaEm != null && momento.isBefore(iniciadaEm)) {
+            throw new IllegalArgumentException("Finalização não pode anteceder o início da execução");
         }
         status = destino;
         if (destino == StatusOS.FINALIZADA) {
