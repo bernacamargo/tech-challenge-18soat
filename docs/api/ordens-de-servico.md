@@ -10,6 +10,9 @@ itens e a geração ainda aguardam endpoints próprios e integração com catál
 | POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida; cadastra cliente/veículo ausentes |
 | GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista ordenada pelo UUID |
 | GET | `/api/ordens-de-servico/{id}` | ATENDENTE, MECANICO, ADMINISTRADOR | Detalhe com itens/orçamento ou 404 |
+| POST | `/api/ordens-de-servico/{id}/diagnostico` | MECANICO, ADMINISTRADOR | Recebida → Em diagnóstico |
+| POST | `/api/ordens-de-servico/{id}/conclusao` | MECANICO, ADMINISTRADOR | Em execução → Finalizada; registra horário |
+| POST | `/api/ordens-de-servico/{id}/entrega` | ATENDENTE, ADMINISTRADOR | Finalizada → Entregue; preserva horário |
 
 Requisição de criação:
 
@@ -28,8 +31,12 @@ A resposta contém `id`, `clienteId` (documento normalizado), `veiculoId` (placa
 `status`, `finalizadaEm` (nulo até a conclusão), `itens` e `orcamento`.
 Cada item contém UUID, referência ao catálogo, tipo, descrição, quantidade, preço unitário e
 subtotal. O orçamento contém o total; antes da geração é nulo e OS nova tem itens vazios. Criação retorna 201 e cabeçalho Location.
-Veículo já cadastrado deve pertencer ao cliente informado. Não há endpoint de transição nesta
-base; os casos de uso da #35 ainda não estão expostos via REST.
+Veículo já cadastrado deve pertencer ao cliente informado. As três ações da #35 não recebem corpo e retornam 200 com a OS atualizada.
+UUID inválido retorna 400, OS inexistente 404, ausência de JWT 401 e papel não autorizado 403.
+Transição inválida, incluindo repetição, retorna 409 com `mensagem`, preservando o estado.
+Conclusão usa o relógio UTC do servidor com precisão de microssegundos (PostgreSQL),
+e entrega preserva esse momento. Aprovação/início de
+execução (#40) e geração de orçamento (#38) ainda não têm endpoints.
 
 ## Persistência e transação
 
@@ -68,3 +75,14 @@ esquema de autenticação.
 A migration V5 persiste os itens ordenados e o total do orçamento (ADR 0011).
 `ItensOrcamentoPersistenceIntegrationTest` verifica gravações sucessivas, valores e identidade
 dos itens, detalhe administrativo, isolamento da consulta pública e rollback de gravação.
+
+## Transições — issue #35
+
+A fronteira transacional `OrdemDeServicoService` envolve busca, transição e gravação, utilizando
+os casos de uso existentes. Nenhum endpoint recebe status arbitrário. Não há mudanças de schema.
+Os papéis seguem o Event Storming, com ADMINISTRADOR autorizado nas três ações.
+
+`TransicoesOrdemDeServicoApiIntegrationTest` valida respostas, permissões, OS ausente, UUID
+inválido, transições inválidas/repetidas, preservação de itens/orçamento, horário de conclusão,
+Swagger e rollback real de falha na gravação. O estado Em execução é preparado via repositório
+nos testes, pois o fluxo de aprovação da #40 ainda está pendente.

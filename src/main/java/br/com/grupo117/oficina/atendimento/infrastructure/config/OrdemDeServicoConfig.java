@@ -8,6 +8,11 @@ import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoReposi
 import br.com.grupo117.oficina.atendimento.application.usecase.CriarOrdemDeServico;
 import br.com.grupo117.oficina.atendimento.application.usecase.DetalharOrdemDeServico;
 import br.com.grupo117.oficina.atendimento.application.usecase.ListarOrdensDeServico;
+import br.com.grupo117.oficina.atendimento.application.usecase.IniciarDiagnostico;
+import br.com.grupo117.oficina.atendimento.application.usecase.ConcluirServicos;
+import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
+import java.time.Clock;
+import java.time.Duration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,5 +34,20 @@ public class OrdemDeServicoConfig {
     @Bean
     DetalharOrdemDeServico detalharOrdemDeServico(OrdemDeServicoRepositorio ordens) {
         return new DetalharOrdemDeServico(ordens);
+    }
+    @Bean
+    IniciarDiagnostico iniciarDiagnostico(OrdemDeServicoRepositorio ordens) {
+        return new IniciarDiagnostico(ordens);
+    }
+
+    @Bean
+    ConcluirServicos concluirServicos(OrdemDeServicoRepositorio ordens) {
+        // PostgreSQL armazena timestamps com precisão de microssegundos.
+        return new ConcluirServicos(ordens, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)));
+    }
+
+    @Bean
+    RegistrarEntrega registrarEntrega(OrdemDeServicoRepositorio ordens) {
+        return new RegistrarEntrega(ordens);
     }
 }
