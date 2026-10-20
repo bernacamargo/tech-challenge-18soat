@@ -11,10 +11,10 @@
 
 ## Integração pendente
 
-Estes casos de uso NÃO são beans Spring nem endpoints. O adaptador JPA existente ainda não
-preserva `iniciadaEm` e `rejeicaoOrcamento`: conectá-lo agora perderia esses dados. Antes do
-wiring são necessários migration, reconstituição, DTOs administrativos e testes reais de
-persistência/rollback. A autorização dos comandos do cliente também precisa ser definida.
+Estes casos de uso NÃO são beans Spring nem endpoints. O adaptador JPA agora preserva
+`iniciadaEm` e `rejeicaoOrcamento` pela migration V5.1 e restauração completa (ADR 0013).
+Antes do wiring ainda são necessários adaptador de baixa, transação conjunta com o estoque,
+DTOs administrativos e autorização dos comandos do cliente.
 
 A PR #51 propõe `EstoqueDaOrdemDeServico.baixarReservasDaOrdemDeServico(osId)`, retornando uma
 contagem. Atendimento propõe um port próprio com sucesso integral ou exceção; o adaptador futuro
@@ -28,4 +28,17 @@ Falha na baixa impede mutação/salvamento da OS; falha posterior ao consumo dev
 ambos pela transação real. Não há compensação artificial no caso de uso.
 
 Revisão/reabertura, versionamento e liberação das reservas após rejeição estão fora desta
-etapa e precisam de fluxo definido. O cálculo e a API do tempo médio (#39) ainda não existem.
+etapa e precisam de fluxo definido. A métrica de tempo médio será tratada por observabilidade por outro responsável, conforme
+alinhamento do grupo; cálculo e endpoint próprios não fazem parte desta entrega.
+
+## Persistência da decisão
+
+`OrdemDeServico.restaurar` aceita início e rejeição sem executar as ações de negócio.
+`DecisaoOrcamentoPersistenceIntegrationTest` verifica reabertura, gravações sucessivas,
+conclusão/entrega, motivo longo, precisão de microssegundos, constraints e rollback da OS.
+A baixa usada no teste de aprovação é fake: a atomicidade com o estoque real continua pendente.
+
+`DecisaoOrcamentoMigrationIntegrationTest` migra um schema temporário da V5 para V5.1 com
+OS e itens existentes, preservando dados e mantendo novos campos nulos. Não atribui início
+fictício a OS legadas; isso precisa ser considerado nas métricas de observabilidade. Os DTOs públicos
+e administrativos não foram ampliados nesta etapa.
