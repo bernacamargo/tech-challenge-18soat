@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/ordens-de-servico")
-@Tag(name = "Ordens de serviço", description = "Base da OS; itens e orçamento serão incluídos nas próximas issues")
+@Tag(name = "Ordens de serviço", description = "OS com itens, orçamento e andamento")
 @SecurityRequirement(name = "bearer-jwt")
 public class OrdemDeServicoController {
     private final OrdemDeServicoService service;
@@ -34,14 +34,14 @@ public class OrdemDeServicoController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
-    @Operation(summary = "Lista as ordens de serviço", description = "Retorna identificação, status e finalização; itens e orçamento pendentes")
+    @Operation(summary = "Lista as ordens de serviço", description = "Retorna identificação, itens, orçamento, status e finalização")
     public List<OrdemDeServicoResponse> listar() {
         return service.listar().stream().map(OrdemDeServicoResponse::de).toList();
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
-    @Operation(summary = "Detalha uma OS", description = "Detalhe básico; itens e orçamento ainda não implementados")
+    @Operation(summary = "Detalha uma OS", description = "Inclui itens com preços registrados e orçamento quando gerado")
     public OrdemDeServicoResponse detalhar(@PathVariable UUID id) {
         return OrdemDeServicoResponse.de(service.detalhar(id));
     }
