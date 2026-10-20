@@ -30,9 +30,9 @@ com fakes nem acoplamento do domínio às entidades de estoque.
 
 ## Consequências e limites
 
-Os casos de uso são preparados com ports fake, sem beans Spring ou endpoints. O início e a
-rejeição ainda não são persistidos pelo adaptador atual: não ligar estes casos ao JPA antes de
-migration, reconstituição, testes de rollback e adaptador de baixa da #30 (PR #51/#52).
+Os casos de uso são preparados com ports fake, sem beans Spring ou endpoints. A persistência
+do início e da rejeição foi complementada pelo ADR 0013. O wiring produtivo ainda depende do
+adaptador de baixa da #30 (PR #51/#52), transação conjunta e autorização do cliente.
 A revisão de orçamento e o destino/liberação das reservas após rejeição precisam ser definidos
 no fluxo de ajuste; não se presume que o port atual de estoque já ofereça essas operações.
 
