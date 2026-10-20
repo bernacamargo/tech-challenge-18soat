@@ -36,14 +36,14 @@ public class OrdemDeServicoController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
-    @Operation(summary = "Lista as ordens de serviço", description = "Retorna identificação, itens, orçamento, status e finalização")
+    @Operation(summary = "Lista as ordens de serviço", description = "Retorna identificação, itens, orçamento, status, início, finalização e rejeição quando registrada")
     public List<OrdemDeServicoResponse> listar() {
         return service.listar().stream().map(OrdemDeServicoResponse::de).toList();
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
-    @Operation(summary = "Detalha uma OS", description = "Inclui itens com preços registrados e orçamento quando gerado")
+    @Operation(summary = "Detalha uma OS", description = "Inclui itens, orçamento, início da execução e data/motivo da rejeição quando registrados")
     public OrdemDeServicoResponse detalhar(@PathVariable UUID id) {
         return OrdemDeServicoResponse.de(service.detalhar(id));
     }

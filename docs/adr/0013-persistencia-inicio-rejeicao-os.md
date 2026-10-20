@@ -46,8 +46,8 @@ transação do adaptador, com rollback em falha de gravação.
 Não conecta os casos de uso da decisão ao Spring/REST nem cria adaptador de baixa. A chamada ao
 estoque e a gravação da OS ainda precisam ser integradas numa transação real, com autorização
 definida para os comandos do cliente. Testes com um port fake de baixa não provam transação,
-idempotência ou concorrência do estoque produtivo. Não adiciona os novos dados à consulta
-pública nem aos DTOs administrativos; a exposição será tratada na camada de API apropriada.
+idempotência ou concorrência do estoque produtivo. A consulta pública não expõe os novos dados. A camada de API administrativa os apresenta
+por DTOs próprios, conforme `docs/api/ordens-de-servico.md`, sem alterar comandos de decisão.
 
 ## Evidências
 

@@ -1,7 +1,7 @@
 # API de Ordens de Serviço — base da issue #36
 
-O detalhe administrativo inclui itens persistidos e orçamento, quando gerado. A inclusão de
-itens ainda aguarda endpoints próprios e integração com catálogo/estoque.
+O detalhe administrativo inclui itens, orçamento, início da execução e rejeição quando registrados.
+A inclusão de itens ainda aguarda endpoints próprios e integração com catálogo/estoque.
 
 ## Endpoints
 
@@ -29,7 +29,8 @@ Requisição de criação:
 ```
 
 A resposta contém `id`, `clienteId` (documento normalizado), `veiculoId` (placa normalizada),
-`status`, `finalizadaEm` (nulo até a conclusão), `itens` e `orcamento`.
+`status`, `finalizadaEm` (nulo até a conclusão), `itens`, `orcamento`, `iniciadaEm` e
+`rejeicaoOrcamento`.
 Cada item contém UUID, referência ao catálogo, tipo, descrição, quantidade, preço unitário e
 subtotal. O orçamento contém o total; antes da geração é nulo e OS nova tem itens vazios. Criação retorna 201 e cabeçalho Location.
 Veículo já cadastrado deve pertencer ao cliente informado. As três ações da #35 não recebem corpo e retornam 200 com a OS atualizada.
@@ -104,3 +105,36 @@ somente andamento. O endpoint não envia e-mail nem aprova/inicia a execução.
 consulta pública, papéis, estados inválidos, repetição, OS vazia, identificador e rollback real.
 Nos testes, os itens são preparados via repositório: a integração de inclusão com catálogo e
 reserva de estoque continua pendente da #34. Isso ainda não demonstra o fluxo completo da oficina.
+
+## Início da execução e rejeição no detalhe administrativo
+
+O DTO compartilhado das respostas administrativas inclui:
+
+- `iniciadaEm`: instante UTC de início, ou nulo antes da aprovação e em OS legadas sem início conhecido.
+- `rejeicaoOrcamento`: objeto com `momento` (UTC) e `motivo`, ou nulo quando não houve rejeição.
+
+Os campos aparecem no detalhe, na listagem e nas respostas dos comandos que já utilizam
+`OrdemDeServicoResponse`. Uma OS nova retorna ambos nulos. Rejeição mantém Aguardando aprovação
+e não preenche início; conclusão/entrega preservam o início registrado. O motivo segue o valor
+normalizado e persistido pelo domínio, sem recalcular ou alterar a decisão na consulta.
+
+Exemplo dos novos campos em uma OS rejeitada:
+
+```json
+{
+  "iniciadaEm": null,
+  "rejeicaoOrcamento": {
+    "momento": "2026-10-20T12:00:00.123456Z",
+    "motivo": "Preço acima do esperado"
+  }
+}
+```
+
+Continuam valendo JWT e os papéis ATENDENTE, MECANICO e ADMINISTRADOR para as consultas
+administrativas. A resposta pública mantém exclusivamente `status` e `finalizadaEm`, inclusive
+quando há início ou rejeição registrados. Não há novo comando público de aprovação/rejeição.
+
+`DecisaoOrcamentoApiIntegrationTest` verifica respostas autenticadas de detalhe/listagem,
+campos nulos na criação e em OS legadas, preservação após entrega, 401/403 e schemas Swagger.
+Os estados são preparados pelo domínio/repositório nos testes: a integração real com estoque
+e os endpoints de decisão continuam pendentes.
