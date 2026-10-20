@@ -77,4 +77,15 @@ public class OrdemDeServicoController {
     public OrdemDeServicoResponse registrarEntrega(@PathVariable UUID id) {
         return OrdemDeServicoResponse.de(service.registrarEntrega(id));
     }
+
+    @PostMapping("/{id}/orcamento")
+    @PreAuthorize("hasAnyRole('ATENDENTE', 'ADMINISTRADOR')")
+    @Operation(summary = "Gera o orçamento da OS", description = "Soma os itens registrados e altera Em diagnóstico para Aguardando aprovação. Não recebe corpo nem envia e-mail.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OS com orçamento gerado"),
+            @ApiResponse(responseCode = "400", description = "OS sem itens ou identificador inválido"),
+            @ApiResponse(responseCode = "404", description = "OS não encontrada"),
+            @ApiResponse(responseCode = "409", description = "Geração não permitida no estado atual")})
+    public OrdemDeServicoResponse gerarOrcamento(@PathVariable UUID id) {
+        return OrdemDeServicoResponse.de(service.gerarOrcamento(id));
+    }
 }

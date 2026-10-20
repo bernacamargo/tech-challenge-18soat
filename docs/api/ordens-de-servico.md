@@ -1,7 +1,7 @@
 # API de Ordens de Serviço — base da issue #36
 
 O detalhe administrativo inclui itens persistidos e orçamento, quando gerado. A inclusão de
-itens e a geração ainda aguardam endpoints próprios e integração com catálogo/estoque.
+itens ainda aguarda endpoints próprios e integração com catálogo/estoque.
 
 ## Endpoints
 
@@ -13,6 +13,7 @@ itens e a geração ainda aguardam endpoints próprios e integração com catál
 | POST | `/api/ordens-de-servico/{id}/diagnostico` | MECANICO, ADMINISTRADOR | Recebida → Em diagnóstico |
 | POST | `/api/ordens-de-servico/{id}/conclusao` | MECANICO, ADMINISTRADOR | Em execução → Finalizada; registra horário |
 | POST | `/api/ordens-de-servico/{id}/entrega` | ATENDENTE, ADMINISTRADOR | Finalizada → Entregue; preserva horário |
+| POST | `/api/ordens-de-servico/{id}/orcamento` | ATENDENTE, ADMINISTRADOR | Calcula orçamento; Em diagnóstico → Aguardando aprovação |
 
 Requisição de criação:
 
@@ -36,7 +37,7 @@ UUID inválido retorna 400, OS inexistente 404, ausência de JWT 401 e papel nã
 Transição inválida, incluindo repetição, retorna 409 com `mensagem`, preservando o estado.
 Conclusão usa o relógio UTC do servidor com precisão de microssegundos (PostgreSQL),
 e entrega preserva esse momento. Aprovação/início de
-execução (#40) e geração de orçamento (#38) ainda não têm endpoints.
+execução (#40) ainda não têm endpoints.
 
 ## Persistência e transação
 
@@ -86,3 +87,20 @@ Os papéis seguem o Event Storming, com ADMINISTRADOR autorizado nas três açõ
 inválido, transições inválidas/repetidas, preservação de itens/orçamento, horário de conclusão,
 Swagger e rollback real de falha na gravação. O estado Em execução é preparado via repositório
 nos testes, pois o fluxo de aprovação da #40 ainda está pendente.
+
+## Geração de orçamento — issue #38
+
+`POST /api/ordens-de-servico/{id}/orcamento` não recebe corpo. Atendente ou administrador
+aciona o cálculo pelo sistema, exclusivamente a partir de quantidades/preços dos itens
+persistidos. Retorna 200 com a OS atualizada, itens e total, em Aguardando aprovação.
+O serviço envolve leitura, geração e gravação em uma transação.
+
+OS sem itens retorna 400; estado diferente de Em diagnóstico (incluindo geração repetida)
+retorna 409. OS ausente retorna 404, UUID inválido 400, JWT ausente 401 e papel não permitido 403.
+Falhas de validação/gravação preservam o estado anterior. A consulta pública continua exibindo
+somente andamento. O endpoint não envia e-mail nem aprova/inicia a execução.
+
+`GerarOrcamentoApiIntegrationTest` verifica total com serviços/peças, persistência e detalhe,
+consulta pública, papéis, estados inválidos, repetição, OS vazia, identificador e rollback real.
+Nos testes, os itens são preparados via repositório: a integração de inclusão com catálogo e
+reserva de estoque continua pendente da #34. Isso ainda não demonstra o fluxo completo da oficina.

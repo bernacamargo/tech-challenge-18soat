@@ -11,6 +11,7 @@ import br.com.grupo117.oficina.atendimento.application.usecase.ListarOrdensDeSer
 import br.com.grupo117.oficina.atendimento.application.usecase.IniciarDiagnostico;
 import br.com.grupo117.oficina.atendimento.application.usecase.ConcluirServicos;
 import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
+import br.com.grupo117.oficina.atendimento.application.usecase.GerarOrcamento;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;
@@ -49,5 +50,9 @@ public class OrdemDeServicoConfig {
     @Bean
     RegistrarEntrega registrarEntrega(OrdemDeServicoRepositorio ordens) {
         return new RegistrarEntrega(ordens);
+    }
+    @Bean
+    GerarOrcamento gerarOrcamento(OrdemDeServicoRepositorio ordens) {
+        return new GerarOrcamento(ordens);
     }
 }
