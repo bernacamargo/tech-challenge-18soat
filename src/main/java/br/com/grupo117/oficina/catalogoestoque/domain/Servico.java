@@ -18,7 +18,7 @@ public final class Servico {
         this.id = Objects.requireNonNull(id, "Id do servico e obrigatorio");
         this.nome = textoObrigatorio(nome, "Nome do servico e obrigatorio");
         this.descricao = descricaoOpcional(descricao);
-        this.preco = Objects.requireNonNull(preco, "Preco do servico e obrigatorio");
+        this.preco = precoValido(preco);
     }
 
     public static Servico cadastrar(String nome, String descricao, BigDecimal preco) {
@@ -50,6 +50,13 @@ public final class Servico {
             throw new IllegalArgumentException(mensagem);
         }
         return valor.trim();
+    }
+
+    private static Dinheiro precoValido(Dinheiro preco) {
+        if (preco == null || !preco.positivo()) {
+            throw new DinheiroInvalidoException("Preco do servico deve ser maior que zero");
+        }
+        return preco;
     }
 
     private static String descricaoOpcional(String valor) {

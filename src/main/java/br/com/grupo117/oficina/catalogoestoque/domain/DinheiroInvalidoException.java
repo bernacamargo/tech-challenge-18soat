@@ -1,7 +1,7 @@
 package br.com.grupo117.oficina.catalogoestoque.domain;
 
 /**
- * Valor monetario rejeitado por ser nulo, zero, negativo ou ilegivel.
+ * Valor monetario rejeitado por estar ausente, mal formatado ou negativo.
  */
 public final class DinheiroInvalidoException extends RuntimeException {
 

@@ -50,7 +50,7 @@ class ServicoTest {
     @Test
     void rejeitaPrecoAusenteNoConstrutor() {
         assertThrows(
-                NullPointerException.class,
+                DinheiroInvalidoException.class,
                 () -> new Servico(UUID.randomUUID(), "Troca de oleo", null, null)
         );
     }
