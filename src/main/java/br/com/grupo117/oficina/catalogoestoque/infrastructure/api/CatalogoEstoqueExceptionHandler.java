@@ -1,6 +1,7 @@
 package br.com.grupo117.oficina.catalogoestoque.infrastructure.api;
 
 import br.com.grupo117.oficina.catalogoestoque.application.usecase.PecaNaoEncontradaException;
+import br.com.grupo117.oficina.catalogoestoque.application.usecase.ServicoNaoEncontradoException;
 import br.com.grupo117.oficina.catalogoestoque.domain.DinheiroInvalidoException;
 import br.com.grupo117.oficina.catalogoestoque.domain.EstoqueInsuficienteException;
 import br.com.grupo117.oficina.catalogoestoque.domain.QuantidadeInvalidaException;
@@ -12,10 +13,12 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {PecaController.class, EstoqueDaOrdemDeServicoController.class})
+@RestControllerAdvice(assignableTypes = {
+    PecaController.class, EstoqueDaOrdemDeServicoController.class, ServicoController.class
+})
 public class CatalogoEstoqueExceptionHandler {
-    @ExceptionHandler(PecaNaoEncontradaException.class)
-    public ResponseEntity<ErroResponse> naoEncontrada(PecaNaoEncontradaException erro) {
+    @ExceptionHandler({PecaNaoEncontradaException.class, ServicoNaoEncontradoException.class})
+    public ResponseEntity<ErroResponse> naoEncontrada(RuntimeException erro) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResponse(erro.getMessage()));
     }
 
