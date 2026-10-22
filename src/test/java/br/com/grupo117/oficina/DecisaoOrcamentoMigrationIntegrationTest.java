@@ -28,7 +28,7 @@ class DecisaoOrcamentoMigrationIntegrationTest extends AbstractIntegrationTest {
             jdbc.update("insert into " + schema + ".item_da_os (id, ordem_de_servico_id, posicao, catalogo_id, tipo, descricao, quantidade, preco_unitario) values (?, ?, 0, ?, 'SERVICO', 'Diagnóstico', 1, 50.00)", UUID.randomUUID(), aguardando, UUID.randomUUID());
 
             var resultado = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema)
-                    .load().migrate();
+                    .target("5.1").load().migrate();
             assertThat(resultado.migrationsExecuted).isEqualTo(1);
             assertThat(jdbc.queryForObject("select count(*) from " + schema + ".ordem_de_servico", Integer.class)).isEqualTo(2);
             assertThat(jdbc.queryForObject("select finalizada_em from " + schema + ".ordem_de_servico where id = ?", Timestamp.class, entregue).toInstant()).isEqualTo(fim);
