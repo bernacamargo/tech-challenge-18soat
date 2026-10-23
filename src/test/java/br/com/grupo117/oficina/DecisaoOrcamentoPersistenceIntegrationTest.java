@@ -72,7 +72,7 @@ class DecisaoOrcamentoPersistenceIntegrationTest extends AbstractIntegrationTest
     @Test
     void rejeitaEPreservaMotivoDataEBloqueioAposGravacoesSucessivas() {
         OrdemDeServico os = orcada();
-        OrdemDeServico salva = new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), "  Preço acima do esperado  ");
+        OrdemDeServico salva = new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), "  Preço acima do esperado  ");
         ordens.salvar(ordens.buscarPorId(os.id()).orElseThrow());
         OrdemDeServico lida = ordens.buscarPorId(os.id()).orElseThrow();
         assertThat(lida.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
@@ -84,7 +84,7 @@ class DecisaoOrcamentoPersistenceIntegrationTest extends AbstractIntegrationTest
         assertThat(lida.orcamento()).isEqualTo(os.orcamento());
         List<UUID> baixas = new ArrayList<>();
         assertThatIllegalStateException().isThrownBy(() -> new AprovarOrcamento(ordens, baixas::add, CLOCK).aprovar(os.id()));
-        assertThatIllegalStateException().isThrownBy(() -> new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), "Outro motivo"));
+        assertThatIllegalStateException().isThrownBy(() -> new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), "Outro motivo"));
         assertThat(baixas).isEmpty();
         JsonNode publica = restTemplate.getForObject("/api/acompanhamento/ordens-de-servico/" + os.id(), JsonNode.class);
         assertThat(publica.size()).isEqualTo(2);
@@ -96,7 +96,7 @@ class DecisaoOrcamentoPersistenceIntegrationTest extends AbstractIntegrationTest
     void motivoLongoComAcentosEPontuacaoNaoSePerde() {
         OrdemDeServico os = orcada();
         String motivo = "Revisão de peças: orçamento não aprovado.\n".repeat(100);
-        new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), motivo);
+        new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), motivo);
         assertThat(ordens.buscarPorId(os.id()).orElseThrow().rejeicaoOrcamento().orElseThrow().motivo())
                 .isEqualTo(motivo.trim());
     }
@@ -128,7 +128,7 @@ class DecisaoOrcamentoPersistenceIntegrationTest extends AbstractIntegrationTest
         OrdemDeServico os = orcada();
         jdbc.execute("alter table ordem_de_servico add constraint ck_rejeicao_falha_teste check (orcamento_rejeitado_em is null)");
         try {
-            assertThatThrownBy(() -> new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), "Custo"))
+            assertThatThrownBy(() -> new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), "Custo"))
                     .isInstanceOf(DataIntegrityViolationException.class);
             OrdemDeServico lida = ordens.buscarPorId(os.id()).orElseThrow();
             assertThat(lida.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);

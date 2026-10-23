@@ -56,6 +56,20 @@ public final class MovimentarEstoqueDaOrdemDeServico implements EstoqueDaOrdemDe
         return ativas.size();
     }
 
+    @Override
+    public int cancelarReservasDaOrdemDeServico(UUID ordemDeServicoId) {
+        Objects.requireNonNull(ordemDeServicoId, "Identificador da OS e obrigatorio");
+        List<ReservaDeEstoque> ativas = reservas.buscarAtivasPorOrdemDeServico(ordemDeServicoId);
+        for (ReservaDeEstoque reserva : ativas) {
+            Peca peca = buscarPeca(reserva.pecaId());
+            peca.cancelarReserva(reserva);
+            pecas.salvar(peca);
+            reservas.salvar(reserva);
+            publicarEventos(peca);
+        }
+        return ativas.size();
+    }
+
     private Peca buscarPeca(UUID pecaId) {
         Objects.requireNonNull(pecaId, "Identificador da peca e obrigatorio");
         return pecas.buscarPorId(pecaId).orElseThrow(() -> new PecaNaoEncontradaException(pecaId));

@@ -31,6 +31,16 @@ class OrcamentoTest {
     }
 
     @Test
+    void submeterOsRecebidaCalculaOrcamentoEEnviaParaAprovacao() {
+        OrdemDeServico os = new OrdemDeServico(UUID.randomUUID(), "52998224725", "ABC1D23");
+        os.incluirItem(item(TipoItemOS.SERVICO, "40.00", 1));
+        Orcamento orcamento = os.submeter();
+        assertThat(os.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
+        assertThat(orcamento.total().valor()).isEqualByComparingTo("40.00");
+        assertThatIllegalStateException().isThrownBy(os::submeter);
+    }
+
+    @Test
     void orcamentoCopiaColecaoERejeitaItensAusentes() {
         List<ItemDaOS> origem = new ArrayList<>(List.of(item(TipoItemOS.PECA, "0.10", 3)));
         Orcamento orcamento = new Orcamento(origem);

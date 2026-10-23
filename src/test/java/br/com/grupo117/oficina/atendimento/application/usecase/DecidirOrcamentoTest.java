@@ -61,12 +61,25 @@ class DecidirOrcamentoTest {
     void rejeitaSemBaixaNemInicioDeExecucao() {
         OrdemDeServico os = orcada();
         OrdensFake ordens = new OrdensFake(os);
-        OrdemDeServico resultado = new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), "Custo");
+        OrdemDeServico resultado = new RejeitarOrcamento(ordens, id -> ordens.chamadas.add("devolver"), CLOCK)
+                .rejeitar(os.id(), "Custo");
         assertThat(resultado.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
         assertThat(resultado.rejeicaoOrcamento().orElseThrow().momento()).isEqualTo(MOMENTO);
         assertThat(resultado.rejeicaoOrcamento().orElseThrow().motivo()).isEqualTo("Custo");
         assertThat(resultado.iniciadaEm()).isEmpty();
-        assertThat(ordens.chamadas).containsExactly("buscar", "salvar");
+        assertThat(ordens.chamadas).containsExactly("buscar", "devolver", "salvar");
+    }
+
+    @Test
+    void falhaNaDevolucaoNaoGravaRejeicao() {
+        OrdemDeServico os = orcada();
+        OrdensFake ordens = new OrdensFake(os);
+        DevolucaoEstoquePort estoque = id -> { throw new IllegalStateException("falha"); };
+        assertThatIllegalStateException()
+                .isThrownBy(() -> new RejeitarOrcamento(ordens, estoque, CLOCK).rejeitar(os.id(), "Custo"));
+        assertThat(os.rejeicaoOrcamento()).isEmpty();
+        assertThat(os.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
+        assertThat(ordens.chamadas).containsExactly("buscar");
     }
 
     @ParameterizedTest
@@ -76,7 +89,7 @@ class DecidirOrcamentoTest {
         OrdemDeServico os = OrdemDeServico.restaurar(UUID.randomUUID(), "cliente", "veiculo", status, finalizada);
         OrdensFake ordens = new OrdensFake(os);
         assertThatIllegalStateException().isThrownBy(() -> aprovar(ordens).aprovar(os.id()));
-        assertThatIllegalStateException().isThrownBy(() -> new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), "Custo"));
+        assertThatIllegalStateException().isThrownBy(() -> new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), "Custo"));
         assertThat(ordens.chamadas).containsExactly("buscar", "buscar");
         assertThat(os.status()).isEqualTo(status);
     }
@@ -95,7 +108,7 @@ class DecidirOrcamentoTest {
         os.rejeitarOrcamento(MOMENTO, "Preço");
         OrdensFake ordens = new OrdensFake(os);
         assertThatIllegalStateException().isThrownBy(() -> aprovar(ordens).aprovar(os.id()));
-        assertThatIllegalStateException().isThrownBy(() -> new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), "Outro"));
+        assertThatIllegalStateException().isThrownBy(() -> new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), "Outro"));
         assertThat(ordens.chamadas).containsExactly("buscar", "buscar");
     }
 
@@ -114,7 +127,7 @@ class DecidirOrcamentoTest {
     void motivoInvalidoNaoSalva() {
         OrdemDeServico os = orcada();
         OrdensFake ordens = new OrdensFake(os);
-        assertThatIllegalArgumentException().isThrownBy(() -> new RejeitarOrcamento(ordens, CLOCK).rejeitar(os.id(), " "));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RejeitarOrcamento(ordens, id -> {}, CLOCK).rejeitar(os.id(), " "));
         assertThat(os.rejeicaoOrcamento()).isEmpty();
         assertThat(ordens.chamadas).containsExactly("buscar");
     }
@@ -123,7 +136,7 @@ class DecidirOrcamentoTest {
     void osAusenteOuIdNuloNaoDaBaixaOuSalva() {
         OrdensFake ordens = new OrdensFake(null);
         AprovarOrcamento aprovar = aprovar(ordens);
-        RejeitarOrcamento rejeitar = new RejeitarOrcamento(ordens, CLOCK);
+        RejeitarOrcamento rejeitar = new RejeitarOrcamento(ordens, id -> {}, CLOCK);
         UUID id = UUID.randomUUID();
         assertThatThrownBy(() -> aprovar.aprovar(id)).isInstanceOf(OrdemDeServicoNaoEncontradaException.class);
         assertThatThrownBy(() -> rejeitar.rejeitar(id, "Preço")).isInstanceOf(OrdemDeServicoNaoEncontradaException.class);

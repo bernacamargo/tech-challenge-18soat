@@ -4,7 +4,9 @@ import br.com.grupo117.oficina.atendimento.application.CadastrarVeiculo;
 import br.com.grupo117.oficina.atendimento.application.ClienteRepositorio;
 import br.com.grupo117.oficina.atendimento.application.IdentificarCliente;
 import br.com.grupo117.oficina.atendimento.application.VeiculoRepositorio;
+import br.com.grupo117.oficina.atendimento.application.port.CatalogoOSPort;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
+import br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.usecase.CriarOrdemDeServico;
 import br.com.grupo117.oficina.atendimento.application.usecase.DetalharOrdemDeServico;
 import br.com.grupo117.oficina.atendimento.application.usecase.ListarOrdensDeServico;
@@ -12,6 +14,7 @@ import br.com.grupo117.oficina.atendimento.application.usecase.IniciarDiagnostic
 import br.com.grupo117.oficina.atendimento.application.usecase.ConcluirServicos;
 import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
 import br.com.grupo117.oficina.atendimento.application.usecase.GerarOrcamento;
+import br.com.grupo117.oficina.atendimento.application.usecase.SubmeterOrdemDeServico;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;
@@ -23,8 +26,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 public class OrdemDeServicoConfig {
     @Bean
     CriarOrdemDeServico criarOrdemDeServico(ClienteRepositorio clientes, CadastrarVeiculo cadastrarVeiculo,
-                                           VeiculoRepositorio veiculos, OrdemDeServicoRepositorio ordens) {
-        return new CriarOrdemDeServico(new IdentificarCliente(clientes), cadastrarVeiculo, veiculos, ordens);
+                                           VeiculoRepositorio veiculos, OrdemDeServicoRepositorio ordens,
+                                           CatalogoOSPort catalogo, ReservaEstoquePort estoque) {
+        return new CriarOrdemDeServico(new IdentificarCliente(clientes), cadastrarVeiculo, veiculos, ordens,
+                catalogo, estoque);
     }
 
     @Bean
@@ -54,5 +59,10 @@ public class OrdemDeServicoConfig {
     @Bean
     GerarOrcamento gerarOrcamento(OrdemDeServicoRepositorio ordens) {
         return new GerarOrcamento(ordens);
+    }
+
+    @Bean
+    SubmeterOrdemDeServico submeterOrdemDeServico(OrdemDeServicoRepositorio ordens) {
+        return new SubmeterOrdemDeServico(ordens);
     }
 }

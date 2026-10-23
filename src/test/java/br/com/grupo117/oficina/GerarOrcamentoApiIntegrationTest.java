@@ -26,7 +26,7 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
 
     @ParameterizedTest
-    @ValueSource(strings = {"ATENDENTE", "ADMINISTRADOR"})
+    @ValueSource(strings = {"MECANICO", "ADMINISTRADOR"})
     void geraTotalDosItensPersistidosEPreservaNaConsulta(String papel) {
         OrdemDeServico os = preparar(StatusOS.EM_DIAGNOSTICO, true);
         var resposta = gerar(os.id().toString(), papel, OrdemDeServicoResponse.class);
@@ -48,7 +48,7 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void osSemItensRetorna400SemAlterarDiagnostico() {
         OrdemDeServico os = preparar(StatusOS.EM_DIAGNOSTICO, false);
-        var resposta = gerar(os.id().toString(), "ATENDENTE", JsonNode.class);
+        var resposta = gerar(os.id().toString(), "MECANICO", JsonNode.class);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(resposta.getBody().path("mensagem").asText()).contains("ao menos um item");
         OrdemDeServico lida = ordens.buscarPorId(os.id()).orElseThrow();
@@ -70,9 +70,9 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void repeticaoRetorna409EPreservaOrcamentoOriginal() {
         OrdemDeServico os = preparar(StatusOS.EM_DIAGNOSTICO, true);
-        var primeira = gerar(os.id().toString(), "ATENDENTE", OrdemDeServicoResponse.class);
+        var primeira = gerar(os.id().toString(), "MECANICO", OrdemDeServicoResponse.class);
         assertThat(primeira.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(gerar(os.id().toString(), "ATENDENTE", String.class).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(gerar(os.id().toString(), "MECANICO", String.class).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(ordens.buscarPorId(os.id()).orElseThrow().orcamento().orElseThrow().total().valor())
                 .isEqualByComparingTo(primeira.getBody().orcamento().total());
     }
@@ -81,10 +81,10 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
     void exigePapelAutorizadoETrataIdentificador() {
         OrdemDeServico os = preparar(StatusOS.EM_DIAGNOSTICO, true);
         assertThat(gerar(os.id().toString(), null, String.class).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(gerar(os.id().toString(), "MECANICO", String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(gerar(os.id().toString(), "ATENDENTE", String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(ordens.buscarPorId(os.id()).orElseThrow().orcamento()).isEmpty();
-        assertThat(gerar(UUID.randomUUID().toString(), "ATENDENTE", String.class).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(gerar("invalido", "ATENDENTE", String.class).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(gerar(UUID.randomUUID().toString(), "MECANICO", String.class).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(gerar("invalido", "MECANICO", String.class).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
@@ -92,7 +92,7 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
         OrdemDeServico os = preparar(StatusOS.EM_DIAGNOSTICO, true);
         jdbc.execute("alter table ordem_de_servico add constraint ck_orcamento_teste check (orcamento_total is null)");
         try {
-            assertThat(gerar(os.id().toString(), "ATENDENTE", String.class).getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(gerar(os.id().toString(), "MECANICO", String.class).getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
             OrdemDeServico lida = ordens.buscarPorId(os.id()).orElseThrow();
             assertThat(lida.status()).isEqualTo(StatusOS.EM_DIAGNOSTICO);
             assertThat(lida.orcamento()).isEmpty();
@@ -105,10 +105,25 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void swaggerDocumentaGeracao() {
         JsonNode docs = restTemplate.getForObject("/v3/api-docs", JsonNode.class);
-        JsonNode operacao = docs.path("paths").path(PATH + "{id}/orcamento").path("post");
+        JsonNode operacao = docs.path("paths").path(PATH + "{id}/diagnostico/conclusao").path("post");
         assertThat(operacao.path("responses").has("400")).isTrue();
         assertThat(operacao.path("responses").has("409")).isTrue();
         assertThat(operacao.path("security").size()).isPositive();
+        JsonNode submissao = docs.path("paths").path(PATH + "{id}/submissao").path("post");
+        assertThat(submissao.path("responses").has("200")).isTrue();
+        assertThat(docs.path("paths").has(PATH + "{id}/orcamento")).isFalse();
+    }
+
+    @Test
+    void submeteOsRecebidaComItensEEnviaOrcamentoParaAprovacao() {
+        OrdemDeServico os = preparar(StatusOS.RECEBIDA, true);
+        var resposta = restTemplate.exchange(PATH + os.id() + "/submissao", HttpMethod.POST,
+                new HttpEntity<>(headers("MECANICO")), OrdemDeServicoResponse.class);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody().status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
+        assertThat(resposta.getBody().orcamento().total()).isEqualByComparingTo("156.25");
+        assertThat(restTemplate.exchange(PATH + os.id() + "/submissao", HttpMethod.POST,
+                new HttpEntity<>(headers("ATENDENTE")), String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     private OrdemDeServico preparar(StatusOS status, boolean comItens) {
@@ -134,6 +149,6 @@ class GerarOrcamentoApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private <T> ResponseEntity<T> gerar(String id, String papel, Class<T> resposta) {
-        return restTemplate.exchange(PATH + id + "/orcamento", HttpMethod.POST, new HttpEntity<>(headers(papel)), resposta);
+        return restTemplate.exchange(PATH + id + "/diagnostico/conclusao", HttpMethod.POST, new HttpEntity<>(headers(papel)), resposta);
     }
 }

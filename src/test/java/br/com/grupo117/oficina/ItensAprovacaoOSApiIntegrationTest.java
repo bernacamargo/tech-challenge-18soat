@@ -34,7 +34,7 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         UUID servicoId = cadastrarServico();
         UUID pecaId = cadastrarPeca();
         UUID osId = abrirOS();
-        var servico = post(osId, "servicos", Map.of("servicoId", servicoId, "quantidade", 1), papel);
+        var servico = post(osId, "servicos", Map.of("servicoId", servicoId, "quantidade", 1), "MECANICO");
         assertThat(servico.getStatusCode()).isEqualTo(HttpStatus.OK);
         var inclusao = post(osId, "pecas", Map.of("pecaId", pecaId, "quantidade", 3), "MECANICO");
         assertThat(inclusao.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -42,19 +42,20 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(inclusao.getBody().itens().get(1).precoUnitario()).isEqualByComparingTo("25.25");
         estoque(pecaId, 10, 3, 7);
         assertThat(post(osId, "diagnostico", null, "MECANICO").getStatusCode()).isEqualTo(HttpStatus.OK);
-        var orcamento = post(osId, "orcamento", null, papel);
+        var orcamento = post(osId, "diagnostico/conclusao", null, "MECANICO");
         assertThat(orcamento.getBody().orcamento().total()).isEqualByComparingTo("156.25");
         assertThat(orcamento.getBody().status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
         Instant antes = Instant.now().minusSeconds(1);
-        var aprovada = post(osId, "aprovacao", null, papel);
+        var aprovada = decidir(osId, "aprovacao", null);
         assertThat(aprovada.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(aprovada.getBody().status()).isEqualTo(StatusOS.EM_EXECUCAO);
-        assertThat(aprovada.getBody().iniciadaEm()).isBetween(antes, Instant.now());
-        assertThat(aprovada.getBody().finalizadaEm()).isNull();
-        assertThat(aprovada.getBody().rejeicaoOrcamento()).isNull();
-        assertThat(ordens.buscarPorId(osId).orElseThrow().iniciadaEm()).contains(aprovada.getBody().iniciadaEm());
+        assertThat(aprovada.getBody().path("status").asText()).isEqualTo("EM_EXECUCAO");
+        OrdemDeServicoResponse detalhe = consultar(osId, papel);
+        assertThat(detalhe.iniciadaEm()).isBetween(antes, Instant.now());
+        assertThat(detalhe.finalizadaEm()).isNull();
+        assertThat(detalhe.rejeicaoOrcamento()).isNull();
+        assertThat(ordens.buscarPorId(osId).orElseThrow().iniciadaEm()).contains(detalhe.iniciadaEm());
         estoque(pecaId, 7, 0, 7);
-        assertThat(postErro(osId, "aprovacao", null, papel).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(decidir(osId, "aprovacao", null).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         estoque(pecaId, 7, 0, 7);
         JsonNode publico = restTemplate.getForObject("/api/acompanhamento/ordens-de-servico/" + osId, JsonNode.class);
         assertThat(publico.size()).isEqualTo(2);
@@ -63,19 +64,20 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         var entregue = post(osId, "entrega", null, papel);
         assertThat(entregue.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(entregue.getBody().status()).isEqualTo(StatusOS.ENTREGUE);
-        assertThat(entregue.getBody().iniciadaEm()).isEqualTo(aprovada.getBody().iniciadaEm());
-        assertThat(entregue.getBody().finalizadaEm()).isAfterOrEqualTo(aprovada.getBody().iniciadaEm());
+        assertThat(entregue.getBody().iniciadaEm()).isEqualTo(detalhe.iniciadaEm());
+        assertThat(entregue.getBody().finalizadaEm()).isAfterOrEqualTo(detalhe.iniciadaEm());
     }
 
     @Test
     void aprovaOSSomenteComServicoSemMovimentarEstoque() {
         UUID os = abrirOS();
-        assertThat(post(os, "servicos", Map.of("servicoId", cadastrarServico(), "quantidade", 2), "ATENDENTE")
+        assertThat(post(os, "servicos", Map.of("servicoId", cadastrarServico(), "quantidade", 2), "MECANICO")
                 .getStatusCode()).isEqualTo(HttpStatus.OK);
         prepararOrcamento(os);
-        var aprovada = post(os, "aprovacao", null, "ATENDENTE");
+        var aprovada = decidir(os, "aprovacao", null);
         assertThat(aprovada.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(aprovada.getBody().orcamento().total()).isEqualByComparingTo("161.00");
+        assertThat(aprovada.getBody().path("status").asText()).isEqualTo("EM_EXECUCAO");
+        assertThat(consultar(os, "ATENDENTE").orcamento().total()).isEqualByComparingTo("161.00");
         assertThat(jdbc.queryForObject("select count(*) from reserva_de_estoque", Integer.class)).isZero();
     }
 
@@ -84,13 +86,13 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         UUID os = abrirOS();
         Map<String, Object> servico = Map.of("servicoId", cadastrarServico(), "quantidade", 1);
         Map<String, Object> peca = Map.of("pecaId", cadastrarPeca(), "quantidade", 1);
-        for (String rota : new String[]{"servicos", "pecas", "aprovacao"}) {
-            Object body = rota.equals("servicos") ? servico : rota.equals("pecas") ? peca : null;
+        for (String rota : new String[]{"servicos", "pecas"}) {
+            Object body = rota.equals("servicos") ? servico : peca;
             assertThat(postErro(os, rota, body, null).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             assertThat(postErro(os, rota, body, "OUTRO").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
-        assertThat(postErro(os, "servicos", servico, "MECANICO").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(postErro(os, "aprovacao", null, "MECANICO").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(postErro(os, "servicos", servico, "ATENDENTE").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(decidir(os, "aprovacao", null).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(ordens.buscarPorId(os).orElseThrow().itens()).isEmpty();
     }
 
@@ -111,12 +113,13 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
             assertThat(postErro(os, rota, Map.of(campo, UUID.randomUUID(), "quantidade", 1), "ADMINISTRADOR")
                     .getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
-        for (String rota : new String[]{"servicos", "pecas", "aprovacao"}) {
-            Object corpo = rota.equals("aprovacao") ? null : Map.of(rota.equals("pecas") ? "pecaId" : "servicoId", peca, "quantidade", 1);
+        for (String rota : new String[]{"servicos", "pecas"}) {
+            Object corpo = Map.of(rota.equals("pecas") ? "pecaId" : "servicoId", peca, "quantidade", 1);
             assertThat(postErro(UUID.randomUUID(), rota, corpo, "ADMINISTRADOR").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
             assertThat(restTemplate.exchange(PATH + "invalido/" + rota, HttpMethod.POST,
                     new HttpEntity<>(corpo, headers("ADMINISTRADOR")), String.class).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
+        assertThat(decidir(UUID.randomUUID(), "aprovacao", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(ordens.buscarPorId(os).orElseThrow().itens()).isEmpty();
         estoque(peca, 10, 0, 10);
     }
@@ -130,16 +133,14 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(resposta.getBody().path("mensagem").asText()).contains("Estoque insuficiente");
         assertThat(ordens.buscarPorId(os).orElseThrow().itens()).isEmpty();
         estoque(peca, 10, 0, 10);
-        assertThat(postErro(os, "aprovacao", null, "ATENDENTE").getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(decidir(os, "aprovacao", null).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(post(os, "pecas", Map.of("pecaId", peca, "quantidade", 1), "ATENDENTE").getStatusCode()).isEqualTo(HttpStatus.OK);
         prepararOrcamento(os);
         assertThat(postErro(os, "pecas", Map.of("pecaId", peca, "quantidade", 1), "MECANICO").getStatusCode())
                 .isEqualTo(HttpStatus.CONFLICT);
-        var rejeitada = ordens.buscarPorId(os).orElseThrow();
-        rejeitada.rejeitarOrcamento(Instant.now(), "Cliente não autorizou");
-        ordens.salvar(rejeitada);
-        assertThat(postErro(os, "aprovacao", null, "ADMINISTRADOR").getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        estoque(peca, 10, 1, 9);
+        assertThat(decidir(os, "rejeicao", Map.of("motivo", "Cliente não autorizou")).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(decidir(os, "aprovacao", null).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        estoque(peca, 10, 0, 10);
         assertThat(ordens.buscarPorId(os).orElseThrow().iniciadaEm()).isEmpty();
     }
 
@@ -151,7 +152,7 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         prepararOrcamento(os);
         jdbc.execute("alter table ordem_de_servico add constraint ck_execucao_api_teste check (status <> 'EM_EXECUCAO')");
         try {
-            assertThat(postErro(os, "aprovacao", null, "ATENDENTE").getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(decidir(os, "aprovacao", null).getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
             estoque(peca, 10, 2, 8);
             assertThat(ordens.buscarPorId(os).orElseThrow().status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
             assertThat(ordens.buscarPorId(os).orElseThrow().iniciadaEm()).isEmpty();
@@ -165,13 +166,31 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void swaggerDocumentaNovosComandosEAutorizacao() {
         JsonNode docs = restTemplate.getForObject("/v3/api-docs", JsonNode.class);
-        for (String rota : new String[]{"servicos", "pecas", "aprovacao"}) {
+        for (String rota : new String[]{"servicos", "pecas"}) {
             JsonNode operacao = docs.path("paths").path(PATH + "{id}/" + rota).path("post");
             assertThat(operacao.path("security").size()).isPositive();
             for (String status : new String[]{"200", "400", "401", "403", "404", "409"}) {
                 assertThat(operacao.path("responses").has(status)).as(rota + " " + status).isTrue();
             }
         }
+        JsonNode aprovacao = docs.path("paths").path("/api/acompanhamento/ordens-de-servico/{id}/aprovacao").path("post");
+        JsonNode rejeicao = docs.path("paths").path("/api/acompanhamento/ordens-de-servico/{id}/rejeicao").path("post");
+        assertThat(aprovacao.path("responses").has("200")).isTrue();
+        assertThat(rejeicao.path("responses").has("200")).isTrue();
+        assertThat(docs.path("paths").has(PATH + "{id}/aprovacao")).isFalse();
+    }
+
+    @Test
+    void aberturaApontaPecaDaListaDeDisponibilidadeEReserva() {
+        UUID peca = cadastrarPeca();
+        var resposta = restTemplate.exchange("/api/ordens-de-servico", HttpMethod.POST,
+                new HttpEntity<>(Map.of("documento", "52998224725", "nome", "Maria", "placa", "DEF2E34",
+                        "marca", "Fiat", "modelo", "Uno", "ano", 2012, "pecaId", peca, "quantidade", 2),
+                        headers("ATENDENTE")), OrdemDeServicoResponse.class);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(resposta.getBody().status()).isEqualTo(StatusOS.RECEBIDA);
+        assertThat(resposta.getBody().itens()).hasSize(1);
+        estoque(peca, 10, 2, 8);
     }
 
     private UUID abrirOS() {
@@ -199,7 +218,21 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
 
     private void prepararOrcamento(UUID os) {
         assertThat(post(os, "diagnostico", null, "MECANICO").getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(post(os, "orcamento", null, "ATENDENTE").getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(post(os, "diagnostico/conclusao", null, "MECANICO").getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private OrdemDeServicoResponse consultar(UUID os, String papel) {
+        var resposta = restTemplate.exchange(PATH + os, HttpMethod.GET,
+                new HttpEntity<>(headers(papel)), OrdemDeServicoResponse.class);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return resposta.getBody();
+    }
+
+    private ResponseEntity<JsonNode> decidir(UUID os, String comando, Object corpo) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return restTemplate.exchange("/api/acompanhamento/ordens-de-servico/" + os + "/" + comando,
+                HttpMethod.POST, new HttpEntity<>(corpo, headers), JsonNode.class);
     }
 
     private void estoque(UUID peca, int disponivel, int reservado, int livre) {

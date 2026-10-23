@@ -3,6 +3,7 @@ package br.com.grupo117.oficina.infra.config;
 import br.com.grupo117.oficina.identidadeacesso.infrastructure.KeycloakRealmRoleConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -10,7 +11,9 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Seguranca da API: stateless, CSRF off (API REST). Health e Swagger sao publicos.
+ * Seguranca da API: stateless, CSRF off (API REST). Health, Swagger e /error sao publicos.
+ * /error precisa ser anonimo para uma falha na aprovacao publica continuar respondendo 500.
+ * Consulta, aprovacao e rejeicao da OS pelo UUID sao publicas nesta mesma cadeia (ADR 0015).
  * As rotas administrativas exigem JWT do Keycloak (ADR 0006), com papeis do realm.
  */
 @Configuration
@@ -26,8 +29,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/info", "/api/health").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info", "/api/health", "/error").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/acompanhamento/ordens-de-servico/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/aprovacao").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/rejeicao").permitAll()
                         .requestMatchers("/api/clientes", "/api/clientes/**", "/api/veiculos", "/api/veiculos/**")
                         .hasAnyRole("ATENDENTE", "ADMINISTRADOR")
                         .anyRequest().authenticated())
