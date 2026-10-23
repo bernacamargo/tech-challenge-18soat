@@ -1,4 +1,4 @@
-# Inclusão de itens da OS — preparação da issue #34
+# Inclusão de itens da OS — issue #34
 
 ## Domínio
 
@@ -11,7 +11,7 @@ O agregado só admite inclusão em Recebida ou Em diagnóstico. Aguardando aprov
 posteriores bloqueiam alterações nesta implementação. Identificadores de itens não se repetem;
 a coleção exposta é imutável. Dois itens podem referenciar o mesmo produto do catálogo.
 
-## Aplicação e contratos propostos
+## Aplicação e contratos
 
 - `application/usecase/IncluirServicoNaOS`: busca OS e serviço, valida e adiciona o item.
 - `application/usecase/IncluirPecaNaOS`: busca OS e peça, valida todos os dados antes de reservar,
@@ -22,25 +22,28 @@ a coleção exposta é imutável. Dois itens podem referenciar o mesmo produto d
   disponibilidade retorna false sem efeitos. itemId deve permitir idempotência no adaptador;
   repetir a mesma reserva não deve descontar duas vezes. Reserva não é baixa.
 
-Os contratos são propostas para integração com Bernardo/Vitor, não contratos já confirmados
-do catálogo. Não existe verificação de disponibilidade separada da reserva, para evitar a
-janela de concorrência entre consulta de saldo e reserva.
+## Integração real com catálogo e estoque
 
-## Pendências antes da integração real
+`CatalogoOSAdapter` consulta os repositórios de Catálogo/Estoque e projeta nome/preço nos ports
+de Atendimento. `EstoqueOSAdapter` adapta a reserva externa, que retorna um ID de reserva,
+ao contrato por item usando `reserva_item_os` (migration V8). Ver ADR 0014.
 
-A issue #34 não está concluída ponta a ponta. Os casos de uso são testados com fakes e **não
-estão registrados como beans nem expostos por endpoints**. Dependem dos adaptadores de catálogo
-e estoque (#24/#25/#30) e do alinhamento de identificadores.
+`IntegracaoCatalogoEstoqueOSConfig` registra os casos de uso e `ItensOrcamentoOSService`
+executa cada comando em uma transação PostgreSQL conjunta com o estoque. Locks da OS e da
+peça evitam perda de itens e disputa de saldo. Falhas de inclusão/gravação revertem reserva,
+vínculo e saldos. Repetição do port com o mesmo item é idempotente; parâmetros divergentes
+são recusados. Uma nova requisição HTTP cria outro item e não é idempotente.
 
-O adaptador JPA persiste e reconstitui itens e orçamento via migration V5, com testes em
-PostgreSQL e exposição no detalhe administrativo (ADR 0011).
-
-Reserva e gravação da OS devem participar da mesma transação Postgres na integração, garantindo
-rollback da reserva se a gravação falhar. Os fakes não demonstram rollback, concorrência ou
-idempotência do futuro adaptador. O contrato não torna uma nova requisição HTTP idempotente.
+`ItensOrcamentoOSController` expõe POST `/api/ordens-de-servico/{id}/servicos` e `/pecas`.
+Requisições e papéis estão em [API de OS](../api/ordens-de-servico.md). Os itens e orçamento
+continuam persistidos pela V5 e expostos no detalhe administrativo (ADR 0011).
 
 ## Verificação
 
 Testes de domínio validam preços, quantidades, subtotal, coleção imutável e todos os estados.
 Testes de aplicação verificam inclusão dos dois tipos, preço preservado, OS/item ausentes,
 estado inválido, dados divergentes do catálogo, estoque insuficiente e falha de reserva.
+
+`IntegracaoEstoqueOSIntegrationTest` usa PostgreSQL real para verificar reserva/baixa,
+rollback, vínculos, FK diferida e concorrência. `ItensAprovacaoOSApiIntegrationTest` cadastra
+catálogo e OS pelas APIs, inclui itens, gera/aprova orçamento e conclui/entrega a OS.

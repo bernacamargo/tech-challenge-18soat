@@ -9,23 +9,23 @@
 - Rejeição não inicia execução nem aciona baixa. Não se aprova orçamento rejeitado sem revisão.
 - Testes sem Spring usando relógio fixo e ports fake, inclusive falhas e ordem de chamadas.
 
-## Integração pendente
+## Integração de aprovação com estoque
 
-Estes casos de uso NÃO são beans Spring nem endpoints. O adaptador JPA agora preserva
-`iniciadaEm` e `rejeicaoOrcamento` pela migration V5.1 e restauração completa (ADR 0013).
-Antes do wiring ainda são necessários adaptador de baixa, transação conjunta com o estoque
-e autorização dos comandos do cliente. Os DTOs administrativos já expõem início e rejeição.
+`AprovarOrcamento` é registrado como bean e exposto por POST
+`/api/ordens-de-servico/{id}/aprovacao`. ATENDENTE/ADMINISTRADOR registra a aprovação do cliente.
+O comando inicia a execução na mesma operação e retorna a OS com `iniciadaEm` persistido.
+O caso de uso de rejeição permanece sem endpoint/wiring; não há comando público de decisão.
 
-A PR #51 propõe `EstoqueDaOrdemDeServico.baixarReservasDaOrdemDeServico(osId)`, retornando uma
-contagem. Atendimento propõe um port próprio com sucesso integral ou exceção; o adaptador futuro
-deve alinhar os contratos, conferir as reservas correspondentes aos itens e compartilhar a
-transação PostgreSQL com a OS. Não basta ignorar um retorno zero quando há peças que deveriam
-ter reservas. A PR #52 fornece infraestrutura ainda não integrada à main.
+`EstoqueOSAdapter` confere a correspondência exata de itens, vínculos e reservas, exige baixa
+integral e participa da mesma transação da OS. Falha posterior ao consumo desfaz a baixa e a
+transição. Reservas já baixadas só representam sucesso do port se comprovadamente corresponderem
+aos itens; nova aprovação HTTP da OS em execução retorna 409 sem consumir novamente.
+OS somente com serviços dispensa reservas. Ver ADR 0014 e a documentação da API.
 
-O contrato de reserva por item da #34 também precisa de alinhamento com o estoque. Os fakes
-NÃO provam idempotência, concorrência ou rollback de estoque real; isso continua pendente.
-Falha na baixa impede mutação/salvamento da OS; falha posterior ao consumo deverá desfazer
-ambos pela transação real. Não há compensação artificial no caso de uso.
+Locks da OS e das peças protegem os comandos concorrentes de Atendimento. Os adaptadores
+ficam na infraestrutura e não importam entidades externas no domínio/aplicação.
+`IntegracaoEstoqueOSIntegrationTest` verifica baixa real, rollback, inconsistências e
+concorrência; `ItensAprovacaoOSApiIntegrationTest` cobre o fluxo HTTP e autorização.
 
 Revisão/reabertura, versionamento e liberação das reservas após rejeição estão fora desta
 etapa e precisam de fluxo definido. A métrica de tempo médio será tratada por observabilidade
@@ -37,7 +37,7 @@ parte desta entrega.
 `OrdemDeServico.restaurar` aceita início e rejeição sem executar as ações de negócio.
 `DecisaoOrcamentoPersistenceIntegrationTest` verifica reabertura, gravações sucessivas,
 conclusão/entrega, motivo longo, precisão de microssegundos, constraints e rollback da OS.
-A baixa usada no teste de aprovação é fake: a atomicidade com o estoque real continua pendente.
+A baixa usada nessa suíte é fake; as novas suítes de integração complementam a prova com estoque real.
 
 `DecisaoOrcamentoMigrationIntegrationTest` migra um schema temporário da V5 para V5.1 com
 OS e itens existentes, preservando dados e mantendo novos campos nulos. Não atribui início
