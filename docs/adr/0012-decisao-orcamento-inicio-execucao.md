@@ -46,3 +46,10 @@ da exposição; a liberação pública da consulta não é autorização para co
 Testes de domínio verificam decisões, estados, horário, rejeição repetida, aprovação após
 rejeição e imutabilidade do orçamento. Testes de aplicação verificam ordem de chamadas, baixa
 rejeitada e ausência de efeitos externos quando a validação falha.
+
+## Evolução em 2026-10-23
+
+O [ADR 0014](0014-integracao-atendimento-catalogo-estoque.md) complementa esta decisão com
+adaptadores reais, vínculo por item, transação conjunta e locks. A API inclui serviços/peças
+e permite a ATENDENTE/ADMINISTRADOR registrar aprovação e iniciar execução. Os limites
+descritos acima refletem a etapa original; rejeição por REST e revisão continuam pendentes.

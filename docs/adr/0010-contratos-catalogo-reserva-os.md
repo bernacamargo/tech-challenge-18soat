@@ -28,3 +28,10 @@ Sem adaptadores reais, os casos de uso ficam sem wiring Spring/REST.
 - Snapshot de preço requer novos campos persistidos; não reutilizar preço atual do catálogo
   para recalcular itens antigos.
 - Alternativa descartada: importar entidades externas ou simular estoque produtivo no Atendimento.
+
+## Evolução em 2026-10-23
+
+O [ADR 0014](0014-integracao-atendimento-catalogo-estoque.md) complementa esta decisão com
+adaptadores reais, vínculo por item, transação conjunta e locks. A API inclui serviços/peças
+e permite a ATENDENTE/ADMINISTRADOR registrar aprovação e iniciar execução. Os limites
+descritos acima refletem a etapa original; rejeição por REST e revisão continuam pendentes.

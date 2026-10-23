@@ -1,7 +1,7 @@
 # API de Ordens de Serviço — base da issue #36
 
 O detalhe administrativo inclui itens, orçamento, início da execução e rejeição quando registrados.
-A inclusão de itens ainda aguarda endpoints próprios e integração com catálogo/estoque.
+A inclusão de itens consulta o catálogo e reserva peças no estoque; a aprovação baixa as reservas e inicia a execução.
 
 ## Endpoints
 
@@ -14,6 +14,9 @@ A inclusão de itens ainda aguarda endpoints próprios e integração com catál
 | POST | `/api/ordens-de-servico/{id}/conclusao` | MECANICO, ADMINISTRADOR | Em execução → Finalizada; registra horário |
 | POST | `/api/ordens-de-servico/{id}/entrega` | ATENDENTE, ADMINISTRADOR | Finalizada → Entregue; preserva horário |
 | POST | `/api/ordens-de-servico/{id}/orcamento` | ATENDENTE, ADMINISTRADOR | Calcula orçamento; Em diagnóstico → Aguardando aprovação |
+| POST | `/api/ordens-de-servico/{id}/servicos` | ATENDENTE, ADMINISTRADOR | Inclui serviço com nome/preço do catálogo |
+| POST | `/api/ordens-de-servico/{id}/pecas` | ATENDENTE, MECANICO, ADMINISTRADOR | Inclui peça e reserva estoque |
+| POST | `/api/ordens-de-servico/{id}/aprovacao` | ATENDENTE, ADMINISTRADOR | Registra aprovação do cliente, baixa reservas e inicia execução |
 
 Requisição de criação:
 
@@ -37,8 +40,7 @@ Veículo já cadastrado deve pertencer ao cliente informado. As três ações da
 UUID inválido retorna 400, OS inexistente 404, ausência de JWT 401 e papel não autorizado 403.
 Transição inválida, incluindo repetição, retorna 409 com `mensagem`, preservando o estado.
 Conclusão usa o relógio UTC do servidor com precisão de microssegundos (PostgreSQL),
-e entrega preserva esse momento. Aprovação/início de
-execução (#40) ainda não têm endpoints.
+e entrega preserva esse momento. Aprovação registra o início na mesma precisão.
 
 ## Persistência e transação
 
@@ -87,7 +89,7 @@ Os papéis seguem o Event Storming, com ADMINISTRADOR autorizado nas três açõ
 `TransicoesOrdemDeServicoApiIntegrationTest` valida respostas, permissões, OS ausente, UUID
 inválido, transições inválidas/repetidas, preservação de itens/orçamento, horário de conclusão,
 Swagger e rollback real de falha na gravação. O estado Em execução é preparado via repositório
-nos testes, pois o fluxo de aprovação da #40 ainda está pendente.
+nessa suíte; o fluxo completo com aprovação é coberto por `ItensAprovacaoOSApiIntegrationTest`.
 
 ## Geração de orçamento — issue #38
 
@@ -103,8 +105,8 @@ somente andamento. O endpoint não envia e-mail nem aprova/inicia a execução.
 
 `GerarOrcamentoApiIntegrationTest` verifica total com serviços/peças, persistência e detalhe,
 consulta pública, papéis, estados inválidos, repetição, OS vazia, identificador e rollback real.
-Nos testes, os itens são preparados via repositório: a integração de inclusão com catálogo e
-reserva de estoque continua pendente da #34. Isso ainda não demonstra o fluxo completo da oficina.
+Nessa suíte, os itens são preparados via repositório. A suíte `ItensAprovacaoOSApiIntegrationTest`
+complementa a verificação pelo fluxo HTTP completo, desde o cadastro no catálogo até a entrega.
 
 ## Início da execução e rejeição no detalhe administrativo
 
@@ -136,5 +138,83 @@ quando há início ou rejeição registrados. Não há novo comando público de 
 
 `DecisaoOrcamentoApiIntegrationTest` verifica respostas autenticadas de detalhe/listagem,
 campos nulos na criação e em OS legadas, preservação após entrega, 401/403 e schemas Swagger.
-Os estados são preparados pelo domínio/repositório nos testes: a integração real com estoque
-e os endpoints de decisão continuam pendentes.
+Nessa suíte, os estados são preparados pelo domínio/repositório. A aprovação com estoque real
+é coberta pelas suítes de integração de estoque e de inclusão/aprovação pela API. Rejeição ainda não possui endpoint.
+
+## Inclusão de serviços e peças — issue #34
+
+As rotas `/servicos` e `/pecas` recebem somente o identificador do catálogo e a quantidade
+inteira positiva. Não recebem preço ou descrição definidos pelo usuário:
+
+```http
+POST /api/ordens-de-servico/{id}/servicos
+Content-Type: application/json
+Authorization: Bearer <JWT>
+
+{"servicoId": "<UUID do serviço>", "quantidade": 1}
+```
+
+```http
+POST /api/ordens-de-servico/{id}/pecas
+Content-Type: application/json
+Authorization: Bearer <JWT>
+
+{"pecaId": "<UUID da peça>", "quantidade": 3}
+```
+
+Retornam 200 com a OS atualizada. O nome do catálogo é copiado como descrição do item e o
+preço vigente é preservado; alterações futuras no catálogo não mudam o orçamento existente.
+A inclusão é permitida em Recebida ou Em diagnóstico, antes da geração do orçamento.
+Cada chamada bem-sucedida cria um novo item: repetir um POST de inclusão pode adicionar outro
+item/reserva. O contrato idempotente por item do adaptador de estoque não torna o POST idempotente.
+
+Peça exige saldo livre suficiente. A inclusão reserva a quantidade e grava item e vínculo na
+mesma transação. A quantidade física (`quantidadeDisponivel`) permanece igual; a reserva aumenta
+`quantidadeReservada` e reduz `quantidadeLivre`. Falta de saldo retorna 409 sem incluir item.
+Campos ausentes, UUID malformado, quantidade inválida ou referência ausente no catálogo retornam
+400. OS ausente retorna 404; orçamento já gerado ou estado incompatível retorna 409.
+
+## Aprovação e início da execução — issue #40
+
+`POST /api/ordens-de-servico/{id}/aprovacao` não recebe corpo. Atendente ou administrador registra
+a aprovação recebida do cliente. Exige orçamento em Aguardando aprovação, sem rejeição.
+Baixa integralmente as reservas correspondentes aos itens PECA, altera para Em execução e
+registra `iniciadaEm` usando o relógio UTC do servidor. Retorna 200 com a OS atualizada.
+Não é necessário chamar outro endpoint para iniciar a execução.
+
+Exemplo: incluir três unidades de uma peça com saldo físico 10 deixa físico 10, reservado 3,
+livre 7. Aprovar deixa físico 7, reservado 0, livre 7. OS com apenas serviços é aprovada sem
+reservas. Aprovação repetida retorna 409 sem uma segunda baixa e preserva o início original.
+
+Reservas ausentes, extras, canceladas ou divergentes impedem aprovação (409). Itens de peças
+legados sem vínculo da migration V8 exigem reconciliação; não são baixados por suposição.
+Falha de persistência reverte a baixa e o início juntos. Locks da OS e das peças serializam
+os comandos de Atendimento; disputas concorrentes traduzidas em 409 pedem consulta do estado
+atual antes de tentar novamente. Ver ADR 0014 para o contrato completo.
+
+O endpoint exige JWT e papel ATENDENTE/ADMINISTRADOR; MECANICO recebe 403. A consulta pública
+continua somente leitura, sem valores ou dados da decisão. Rejeição por REST, revisão,
+liberação de reservas e envio de e-mail permanecem fora desta implementação.
+
+## Executar o fluxo no Swagger
+
+1. Autorizar com JWT de administrador e cadastrar serviço em `/api/servicos` e peça em `/api/pecas`.
+2. Abrir a OS e usar seu `id` para incluir serviços/peças com os IDs retornados pelo catálogo.
+3. Iniciar diagnóstico com MECANICO/ADMINISTRADOR; gerar orçamento com ATENDENTE/ADMINISTRADOR.
+4. Após consentimento do cliente, registrar `/aprovacao` com ATENDENTE/ADMINISTRADOR.
+5. Consultar a OS em Em execução e o saldo da peça; concluir com MECANICO/ADMINISTRADOR e entregar com ATENDENTE/ADMINISTRADOR.
+
+`IntegracaoEstoqueOSIntegrationTest` verifica rollback, correspondência de reservas,
+idempotência por item e concorrência real. `ItensAprovacaoOSApiIntegrationTest` verifica o fluxo
+HTTP completo, papéis, validações, aprovação sem peças, rejeição prévia, rollback da baixa e Swagger.
+
+### Evidência local — 2026-10-23
+
+`./mvnw -B clean verify`: BUILD SUCCESS, 481 testes, zero falhas/erros/skips.
+JaCoCo: linhas de domain 99,58% (473/475), application 100% (300/300); gate de 80% aprovado.
+Relatório reproduzível em `target/site/jacoco/index.html`.
+
+O Swagger foi verificado por HTTP em `/v3/api-docs` nos testes. A exportação pelo plugin Maven
+existente tenta acessar uma aplicação em localhost:8080; sem essa aplicação, registra
+`Connection refused` e não gera o arquivo, embora o build e os testes sejam aprovados.
+Isso não constitui evidência de exportação do JSON durante este comando.
