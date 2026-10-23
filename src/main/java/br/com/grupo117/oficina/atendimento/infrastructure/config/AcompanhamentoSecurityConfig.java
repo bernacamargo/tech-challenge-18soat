@@ -8,17 +8,20 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
-/** Libera apenas leitura do acompanhamento; demais APIs seguem a configuração existente. */
+/** Libera a consulta e a decisão do cliente; demais APIs seguem a configuração existente. */
 @Configuration
 public class AcompanhamentoSecurityConfig {
     @Bean
     @Order(1)
     SecurityFilterChain acompanhamentoSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/acompanhamento/ordens-de-servico/*")
+                .securityMatcher("/api/acompanhamento/ordens-de-servico/**")
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/acompanhamento/ordens-de-servico/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/aprovacao").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/rejeicao").permitAll()
                         .anyRequest().denyAll())
                 .build();
     }

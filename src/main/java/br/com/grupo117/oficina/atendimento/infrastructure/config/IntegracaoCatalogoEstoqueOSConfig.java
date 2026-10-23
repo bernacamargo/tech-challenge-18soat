@@ -2,11 +2,13 @@ package br.com.grupo117.oficina.atendimento.infrastructure.config;
 
 import br.com.grupo117.oficina.atendimento.application.port.BaixaEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.port.CatalogoOSPort;
+import br.com.grupo117.oficina.atendimento.application.port.DevolucaoEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.usecase.AprovarOrcamento;
 import br.com.grupo117.oficina.atendimento.application.usecase.IncluirPecaNaOS;
 import br.com.grupo117.oficina.atendimento.application.usecase.IncluirServicoNaOS;
+import br.com.grupo117.oficina.atendimento.application.usecase.RejeitarOrcamento;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;
@@ -27,5 +29,10 @@ public class IntegracaoCatalogoEstoqueOSConfig {
     @Bean
     AprovarOrcamento aprovarOrcamento(OrdemDeServicoRepositorio ordens, BaixaEstoquePort estoque) {
         return new AprovarOrcamento(ordens, estoque, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)));
+    }
+
+    @Bean
+    RejeitarOrcamento rejeitarOrcamento(OrdemDeServicoRepositorio ordens, DevolucaoEstoquePort estoque) {
+        return new RejeitarOrcamento(ordens, estoque, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)));
     }
 }

@@ -10,6 +10,7 @@ import br.com.grupo117.oficina.catalogoestoque.domain.EstoqueInsuficienteExcepti
 import br.com.grupo117.oficina.catalogoestoque.domain.Peca;
 import br.com.grupo117.oficina.catalogoestoque.domain.PecaReservada;
 import br.com.grupo117.oficina.catalogoestoque.domain.ReservaDeEstoque;
+import br.com.grupo117.oficina.catalogoestoque.domain.ReservaCancelada;
 import br.com.grupo117.oficina.catalogoestoque.domain.StatusReserva;
 import br.com.grupo117.oficina.catalogoestoque.domain.TipoItemEstoque;
 import java.util.UUID;
@@ -130,12 +131,28 @@ class MovimentarEstoqueDaOrdemDeServicoTest {
     }
 
     @Test
+    void cancelarReservaDevolveQuantidadeAoLivre() {
+        UUID reservaId = estoque.reservar(OS_ID, filtro.id(), 3);
+        publicador.publicados().clear();
+
+        int canceladas = estoque.cancelarReservasDaOrdemDeServico(OS_ID);
+
+        assertThat(canceladas).isEqualTo(1);
+        assertThat(filtro.quantidadeDisponivel()).isEqualTo(5);
+        assertThat(filtro.quantidadeLivre()).isEqualTo(5);
+        assertThat(reserva(reservaId).status()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(publicador.publicados()).singleElement().isInstanceOf(ReservaCancelada.class);
+        assertThat(estoque.cancelarReservasDaOrdemDeServico(OS_ID)).isZero();
+    }
+
+    @Test
     void exigeIdentificadoresEDependencias() {
         UUID pecaId = filtro.id();
 
         assertThatNullPointerException().isThrownBy(() -> estoque.reservar(null, pecaId, 1));
         assertThatNullPointerException().isThrownBy(() -> estoque.reservar(OS_ID, null, 1));
         assertThatNullPointerException().isThrownBy(() -> estoque.baixarReservasDaOrdemDeServico(null));
+        assertThatNullPointerException().isThrownBy(() -> estoque.cancelarReservasDaOrdemDeServico(null));
         assertThatNullPointerException()
                 .isThrownBy(() -> new MovimentarEstoqueDaOrdemDeServico(null, reservas, publicador));
         assertThatNullPointerException()

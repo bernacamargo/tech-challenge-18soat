@@ -1,6 +1,7 @@
 package br.com.grupo117.oficina.atendimento.infrastructure.integration;
 
 import br.com.grupo117.oficina.atendimento.application.port.BaixaEstoquePort;
+import br.com.grupo117.oficina.atendimento.application.port.DevolucaoEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.usecase.OrdemDeServicoNaoEncontradaException;
@@ -23,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Transactional(propagation = Propagation.MANDATORY)
-public class EstoqueOSAdapter implements ReservaEstoquePort, BaixaEstoquePort {
+public class EstoqueOSAdapter implements ReservaEstoquePort, BaixaEstoquePort, DevolucaoEstoquePort {
     private final EstoqueDaOrdemDeServico estoque;
     private final PecaRepositorio pecas;
     private final OrdemDeServicoRepositorio ordens;
@@ -80,6 +81,26 @@ public class EstoqueOSAdapter implements ReservaEstoquePort, BaixaEstoquePort {
         if (baixadas != reservas.size()) throw inconsistente();
         List<Reserva> depois = vinculos.buscarReservas(osId);
         if (depois.size() != reservas.size() || !depois.stream().allMatch(r -> r.status().equals("BAIXADA"))) {
+            throw inconsistente();
+        }
+    }
+
+    @Override
+    public void devolverReservas(UUID osId) {
+        locks.bloquearOrdem(osId);
+        var os = ordens.buscarPorId(osId).orElseThrow(() -> new OrdemDeServicoNaoEncontradaException(osId));
+        List<ItemDaOS> itens = os.itens().stream().filter(i -> i.tipo() == TipoItemOS.PECA).toList();
+        itens.stream().map(ItemDaOS::catalogoId).distinct().sorted(java.util.Comparator.comparing(UUID::toString))
+                .forEach(locks::bloquearPeca);
+        List<Vinculo> links = vinculos.buscarPorOrdem(osId);
+        List<Reserva> reservas = vinculos.buscarReservas(osId);
+        validarCorrespondencia(itens, links, reservas);
+        if (reservas.isEmpty() || reservas.stream().allMatch(r -> r.status().equals("CANCELADA"))) return;
+        if (!reservas.stream().allMatch(r -> r.status().equals("ATIVA"))) throw inconsistente();
+        int canceladas = estoque.cancelarReservasDaOrdemDeServico(osId);
+        if (canceladas != reservas.size()) throw inconsistente();
+        List<Reserva> depois = vinculos.buscarReservas(osId);
+        if (depois.size() != reservas.size() || !depois.stream().allMatch(r -> r.status().equals("CANCELADA"))) {
             throw inconsistente();
         }
     }

@@ -7,16 +7,18 @@ A inclusão de itens consulta o catálogo e reserva peças no estoque; a aprova�
 
 | Método | Rota | Papéis | Comportamento |
 |---|---|---|---|
-| POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida; cadastra cliente/veículo ausentes |
+| POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida; pode apontar um serviço ou uma peça |
 | GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista ordenada pelo UUID |
 | GET | `/api/ordens-de-servico/{id}` | ATENDENTE, MECANICO, ADMINISTRADOR | Detalhe com itens/orçamento ou 404 |
 | POST | `/api/ordens-de-servico/{id}/diagnostico` | MECANICO, ADMINISTRADOR | Recebida → Em diagnóstico |
+| POST | `/api/ordens-de-servico/{id}/diagnostico/conclusao` | MECANICO, ADMINISTRADOR | Com itens, gera orçamento e vai para Aguardando aprovação |
+| POST | `/api/ordens-de-servico/{id}/submissao` | MECANICO, ADMINISTRADOR | De Recebida ou Em diagnóstico, com itens, gera orçamento e envia para aprovação |
 | POST | `/api/ordens-de-servico/{id}/conclusao` | MECANICO, ADMINISTRADOR | Em execução → Finalizada; registra horário |
 | POST | `/api/ordens-de-servico/{id}/entrega` | ATENDENTE, ADMINISTRADOR | Finalizada → Entregue; preserva horário |
-| POST | `/api/ordens-de-servico/{id}/orcamento` | ATENDENTE, ADMINISTRADOR | Calcula orçamento; Em diagnóstico → Aguardando aprovação |
-| POST | `/api/ordens-de-servico/{id}/servicos` | ATENDENTE, ADMINISTRADOR | Inclui serviço com nome/preço do catálogo |
+| POST | `/api/ordens-de-servico/{id}/servicos` | MECANICO, ADMINISTRADOR | Inclui serviço com nome/preço do catálogo |
 | POST | `/api/ordens-de-servico/{id}/pecas` | ATENDENTE, MECANICO, ADMINISTRADOR | Inclui peça e reserva estoque |
-| POST | `/api/ordens-de-servico/{id}/aprovacao` | ATENDENTE, ADMINISTRADOR | Registra aprovação do cliente, baixa reservas e inicia execução |
+| POST | `/api/acompanhamento/ordens-de-servico/{id}/aprovacao` | público | Cliente aprova, baixa reservas e inicia execução |
+| POST | `/api/acompanhamento/ordens-de-servico/{id}/rejeicao` | público | Cliente rejeita e devolve as reservas ao estoque |
 
 Requisição de criação:
 
@@ -72,9 +74,8 @@ cliente o UUID retornado na criação administrativa. A resposta contém somente
 `finalizadaEm`; não expõe documento, placa, cliente, itens ou valores. Não verifica propriedade
 da OS (ADR 0009). UUID inexistente retorna 404; formato inválido retorna 400.
 
-A liberação é exclusiva para leitura dessa rota. Criação, listagem e detalhe administrativo
-continuam exigindo JWT e os papéis existentes. O Swagger documenta a consulta pública sem
-esquema de autenticação.
+A liberação pública cobre a consulta e os comandos de aprovação e rejeição do cliente (ADR 0015).
+Criação, listagem e detalhe administrativo continuam exigindo JWT e os papéis existentes.
 
 A migration V5 persiste os itens ordenados e o total do orçamento (ADR 0011).
 `ItensOrcamentoPersistenceIntegrationTest` verifica gravações sucessivas, valores e identidade
@@ -93,15 +94,15 @@ nessa suíte; o fluxo completo com aprovação é coberto por `ItensAprovacaoOSA
 
 ## Geração de orçamento — issue #38
 
-`POST /api/ordens-de-servico/{id}/orcamento` não recebe corpo. Atendente ou administrador
-aciona o cálculo pelo sistema, exclusivamente a partir de quantidades/preços dos itens
-persistidos. Retorna 200 com a OS atualizada, itens e total, em Aguardando aprovação.
-O serviço envolve leitura, geração e gravação em uma transação.
+`POST /api/ordens-de-servico/{id}/diagnostico/conclusao` não recebe corpo. Mecânico ou administrador
+aciona a política que calcula o orçamento a partir dos itens persistidos e muda o status para
+Aguardando aprovação. `POST /api/ordens-de-servico/{id}/submissao` faz o mesmo a partir de
+Recebida ou Em diagnóstico. O serviço envolve leitura, geração e gravação em uma transação.
 
-OS sem itens retorna 400; estado diferente de Em diagnóstico (incluindo geração repetida)
-retorna 409. OS ausente retorna 404, UUID inválido 400, JWT ausente 401 e papel não permitido 403.
+OS sem itens retorna 400; estado incompatível (incluindo repetição) retorna 409. OS ausente
+retorna 404, UUID inválido 400, JWT ausente 401 e papel não permitido 403.
 Falhas de validação/gravação preservam o estado anterior. A consulta pública continua exibindo
-somente andamento. O endpoint não envia e-mail nem aprova/inicia a execução.
+somente andamento. Esses comandos não enviam e-mail nem aprovam a execução.
 
 `GerarOrcamentoApiIntegrationTest` verifica total com serviços/peças, persistência e detalhe,
 consulta pública, papéis, estados inválidos, repetição, OS vazia, identificador e rollback real.
@@ -174,35 +175,32 @@ mesma transação. A quantidade física (`quantidadeDisponivel`) permanece igual
 Campos ausentes, UUID malformado, quantidade inválida ou referência ausente no catálogo retornam
 400. OS ausente retorna 404; orçamento já gerado ou estado incompatível retorna 409.
 
-## Aprovação e início da execução — issue #40
+## Aprovação e rejeição do cliente — issue #40
 
-`POST /api/ordens-de-servico/{id}/aprovacao` não recebe corpo. Atendente ou administrador registra
-a aprovação recebida do cliente. Exige orçamento em Aguardando aprovação, sem rejeição.
+`POST /api/acompanhamento/ordens-de-servico/{id}/aprovacao` não recebe corpo e não exige JWT.
+O cliente aprova a OS. Exige orçamento em Aguardando aprovação, sem rejeição.
 Baixa integralmente as reservas correspondentes aos itens PECA, altera para Em execução e
-registra `iniciadaEm` usando o relógio UTC do servidor. Retorna 200 com a OS atualizada.
-Não é necessário chamar outro endpoint para iniciar a execução.
+registra `iniciadaEm` usando o relógio UTC do servidor. A resposta pública traz somente
+`status` e `finalizadaEm`.
+
+`POST /api/acompanhamento/ordens-de-servico/{id}/rejeicao` recebe `{ "motivo": "..." }`.
+Mantém Aguardando aprovação, grava data e motivo e cancela as reservas ativas, devolvendo
+a quantidade ao saldo livre. Motivo em branco retorna 400. Rejeição ou aprovação repetida retorna 409.
 
 Exemplo: incluir três unidades de uma peça com saldo físico 10 deixa físico 10, reservado 3,
-livre 7. Aprovar deixa físico 7, reservado 0, livre 7. OS com apenas serviços é aprovada sem
-reservas. Aprovação repetida retorna 409 sem uma segunda baixa e preserva o início original.
+livre 7. Aprovar deixa físico 7, reservado 0, livre 7. Rejeitar devolve para físico 10, reservado 0,
+livre 10. OS com apenas serviços é aprovada sem reservas. Aprovação repetida retorna 409 sem uma segunda baixa.
 
-Reservas ausentes, extras, canceladas ou divergentes impedem aprovação (409). Itens de peças
-legados sem vínculo da migration V8 exigem reconciliação; não são baixados por suposição.
-Falha de persistência reverte a baixa e o início juntos. Locks da OS e das peças serializam
-os comandos de Atendimento; disputas concorrentes traduzidas em 409 pedem consulta do estado
-atual antes de tentar novamente. Ver ADR 0014 para o contrato completo.
-
-O endpoint exige JWT e papel ATENDENTE/ADMINISTRADOR; MECANICO recebe 403. A consulta pública
-continua somente leitura, sem valores ou dados da decisão. Rejeição por REST, revisão,
-liberação de reservas e envio de e-mail permanecem fora desta implementação.
+Reservas ausentes, extras, canceladas ou divergentes impedem aprovação (409).
+Falha de persistência reverte a baixa, a devolução e a decisão juntas. Ver ADR 0014 e ADR 0015.
 
 ## Executar o fluxo no Swagger
 
 1. Autorizar com JWT de administrador e cadastrar serviço em `/api/servicos` e peça em `/api/pecas`.
-2. Abrir a OS e usar seu `id` para incluir serviços/peças com os IDs retornados pelo catálogo.
-3. Iniciar diagnóstico com MECANICO/ADMINISTRADOR; gerar orçamento com ATENDENTE/ADMINISTRADOR.
-4. Após consentimento do cliente, registrar `/aprovacao` com ATENDENTE/ADMINISTRADOR.
-5. Consultar a OS em Em execução e o saldo da peça; concluir com MECANICO/ADMINISTRADOR e entregar com ATENDENTE/ADMINISTRADOR.
+2. Abrir a OS, opcionalmente apontando `servicoId` ou `pecaId`, e incluir serviços com MECANICO.
+3. Iniciar e concluir o diagnóstico com MECANICO/ADMINISTRADOR, ou submeter a OS recebida.
+4. Sem JWT, aprovar ou rejeitar em `/api/acompanhamento/ordens-de-servico/{id}/aprovacao` ou `.../rejeicao`.
+5. Consultar a OS e o saldo da peça; concluir a execução com MECANICO e entregar com ATENDENTE.
 
 `IntegracaoEstoqueOSIntegrationTest` verifica rollback, correspondência de reservas,
 idempotência por item e concorrência real. `ItensAprovacaoOSApiIntegrationTest` verifica o fluxo

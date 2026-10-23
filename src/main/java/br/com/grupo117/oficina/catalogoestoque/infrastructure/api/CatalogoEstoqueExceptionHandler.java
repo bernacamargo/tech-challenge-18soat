@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(assignableTypes = {
-    PecaController.class, EstoqueDaOrdemDeServicoController.class, ServicoController.class
+    PecaController.class, ServicoController.class
 })
 public class CatalogoEstoqueExceptionHandler {
     @ExceptionHandler({PecaNaoEncontradaException.class, ServicoNaoEncontradoException.class})
