@@ -10,7 +10,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Seguranca da API: stateless, CSRF off (API REST). Health e Swagger sao publicos.
+ * Seguranca da API: stateless, CSRF off (API REST). Health, Swagger e /error sao publicos.
+ * /error precisa ser anonimo para uma falha na aprovacao publica continuar respondendo 500.
  * As rotas administrativas exigem JWT do Keycloak (ADR 0006), com papeis do realm.
  */
 @Configuration
@@ -26,7 +27,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/info", "/api/health").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info", "/api/health", "/error").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/clientes", "/api/clientes/**", "/api/veiculos", "/api/veiculos/**")
                         .hasAnyRole("ATENDENTE", "ADMINISTRADOR")
