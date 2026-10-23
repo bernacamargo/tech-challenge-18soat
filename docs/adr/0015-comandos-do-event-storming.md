@@ -24,6 +24,8 @@ um serviço ou uma peça da lista de disponibilidade; a peça reserva estoque na
 
 O cliente aprova e rejeita sem autenticação, pelo UUID, em
 `POST /api/acompanhamento/ordens-de-servico/{id}/aprovacao` e `.../rejeicao`.
+Consulta, aprovação e rejeição usam a cadeia stateless já existente, que não tem cookie
+de sessão. O CSRF permanece desligado só nela.
 A resposta pública continua só com status e finalização. Aprovar baixa as reservas e inicia
 a execução. Rejeitar mantém Aguardando aprovação, grava motivo e hora, e cancela as reservas
 ativas para a quantidade voltar ao saldo livre.
