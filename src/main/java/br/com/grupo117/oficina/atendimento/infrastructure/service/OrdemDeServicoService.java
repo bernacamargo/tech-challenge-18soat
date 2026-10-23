@@ -8,6 +8,7 @@ import br.com.grupo117.oficina.atendimento.application.usecase.IniciarDiagnostic
 import br.com.grupo117.oficina.atendimento.application.usecase.ConcluirServicos;
 import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
 import br.com.grupo117.oficina.atendimento.application.usecase.GerarOrcamento;
+import br.com.grupo117.oficina.atendimento.infrastructure.persistence.OperacaoOSLock;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -25,11 +26,12 @@ public class OrdemDeServicoService {
     private final ConcluirServicos concluirServicos;
     private final RegistrarEntrega registrarEntrega;
     private final GerarOrcamento gerarOrcamento;
+    private final OperacaoOSLock locks;
 
     public OrdemDeServicoService(CriarOrdemDeServico criar, ListarOrdensDeServico listar,
                                   DetalharOrdemDeServico detalhar, IniciarDiagnostico iniciarDiagnostico,
                                   ConcluirServicos concluirServicos, RegistrarEntrega registrarEntrega,
-                                  GerarOrcamento gerarOrcamento) {
+                                  GerarOrcamento gerarOrcamento, OperacaoOSLock locks) {
         this.criar = criar;
         this.listar = listar;
         this.detalhar = detalhar;
@@ -37,6 +39,7 @@ public class OrdemDeServicoService {
         this.concluirServicos = concluirServicos;
         this.registrarEntrega = registrarEntrega;
         this.gerarOrcamento = gerarOrcamento;
+        this.locks = locks;
     }
 
     public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano) {
@@ -49,10 +52,10 @@ public class OrdemDeServicoService {
     @Transactional(readOnly = true)
     public OrdemDeServico detalhar(UUID id) { return detalhar.detalhar(id); }
 
-    public OrdemDeServico iniciarDiagnostico(UUID id) { return iniciarDiagnostico.iniciar(id); }
+    public OrdemDeServico iniciarDiagnostico(UUID id) { locks.bloquearOrdem(id); return iniciarDiagnostico.iniciar(id); }
 
-    public OrdemDeServico concluirServicos(UUID id) { return concluirServicos.concluir(id); }
+    public OrdemDeServico concluirServicos(UUID id) { locks.bloquearOrdem(id); return concluirServicos.concluir(id); }
 
-    public OrdemDeServico registrarEntrega(UUID id) { return registrarEntrega.registrar(id); }
-    public OrdemDeServico gerarOrcamento(UUID id) { return gerarOrcamento.gerar(id); }
+    public OrdemDeServico registrarEntrega(UUID id) { locks.bloquearOrdem(id); return registrarEntrega.registrar(id); }
+    public OrdemDeServico gerarOrcamento(UUID id) { locks.bloquearOrdem(id); return gerarOrcamento.gerar(id); }
 }
