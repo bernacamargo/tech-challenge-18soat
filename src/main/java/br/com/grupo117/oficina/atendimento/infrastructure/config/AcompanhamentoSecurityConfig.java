@@ -8,15 +8,20 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
-/** Libera a consulta e a decisão do cliente; demais APIs seguem a configuração existente. */
+/**
+ * Libera a consulta e a decisão do cliente; demais APIs seguem a configuração existente.
+ * Não há cookie de sessão: o UUID da OS é a credencial, então o CSRF não se aplica a estas rotas.
+ */
 @Configuration
 public class AcompanhamentoSecurityConfig {
+    private static final String ROTAS_PUBLICAS = "/api/acompanhamento/ordens-de-servico/**";
+
     @Bean
     @Order(1)
     SecurityFilterChain acompanhamentoSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/acompanhamento/ordens-de-servico/**")
-                .csrf(csrf -> csrf.disable())
+                .securityMatcher(ROTAS_PUBLICAS)
+                .csrf(csrf -> csrf.ignoringRequestMatchers(ROTAS_PUBLICAS))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/acompanhamento/ordens-de-servico/*").permitAll()
