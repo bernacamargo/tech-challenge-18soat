@@ -70,6 +70,24 @@ docker compose --profile dev up -d
 
 Alternativa totalmente containerizada: `docker compose --profile full up -d --build`.
 
+## Catálogo de demonstração (opcional)
+
+Após subir o banco **e iniciar a aplicação**, aguarde a conclusão das migrations Flyway.
+Em outro terminal, na raiz do repositório, execute:
+
+```bash
+./scripts/popular-catalogo-demo.sh
+```
+
+O script usa o PostgreSQL do Compose e cadastra **4 serviços e 5 peças/insumos**, incluindo
+um item sem estoque para demonstrar a validação. Não exige `psql` instalado no host nem JWT.
+Funciona com o banco já iniciado pelos profiles `dev` ou `full`. A carga é manual e fica
+fora das migrations: iniciar a aplicação normalmente não insere dados de demonstração.
+
+Os IDs são fixos e exibidos no terminal. É possível repetir a carga: registros existentes,
+preços alterados, reservas e estoque consumido são preservados. A carga não cria clientes,
+veículos ou OS. Os detalhes e exemplos estão em [guia da demonstração](docs/demo.md).
+
 ## Instruções para execução dos testes
 
 ```bash
