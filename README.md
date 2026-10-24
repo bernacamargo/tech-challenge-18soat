@@ -70,6 +70,21 @@ docker compose --profile dev up -d
 
 Alternativa totalmente containerizada: `docker compose --profile full up -d --build`.
 
+## Observabilidade local (opcional)
+
+```bash
+APP_PROFILES=observability docker compose --profile full --profile observability up -d --build
+```
+
+Acesse **http://localhost:3000/d/oficina-api** com usuário `admin` e senha local
+`grafana-local-demo`. O dashboard **Oficina — Saúde da API** já vem provisionado com
+requisições, status HTTP, latência, JVM e conexões do banco. O Prometheus coleta a cada
+15 segundos e está em http://localhost:9090. As duas interfaces são publicadas em localhost.
+
+Para rodar a aplicação na IDE/Maven, interpretar os painéis ou personalizar as configurações,
+veja o [guia de observabilidade](docs/grafana.md) e o [ADR 0016](docs/adr/0016-metricas-tecnicas-prometheus.md).
+O tempo de execução dos serviços da oficina continua para uma etapa posterior.
+
 ## Instruções para execução dos testes
 
 ```bash
