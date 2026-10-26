@@ -61,10 +61,10 @@ class AcompanhamentoOrdemDeServicoIntegrationTest extends AbstractIntegrationTes
     }
 
     @Test
-    void rotaPublicaNaoPermiteEscritaNemLiberaAdministracao() {
+    void rotaPublicaNaoLiberaAdministracaoNemEscritaGenerica() {
         OrdemDeServico os = criar();
         assertThat(restTemplate.postForEntity(PATH + os.id(), null, String.class).getStatusCode())
-                .isEqualTo(HttpStatus.UNAUTHORIZED);
+                .isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
         assertThat(restTemplate.getForEntity("/api/ordens-de-servico/" + os.id(), String.class).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(restTemplate.getForEntity("/api/ordens-de-servico", String.class).getStatusCode())

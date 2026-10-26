@@ -4,15 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import br.com.grupo117.oficina.catalogoestoque.application.port.PecaRepositorio;
-import br.com.grupo117.oficina.catalogoestoque.domain.EstoqueBaixado;
 import br.com.grupo117.oficina.catalogoestoque.domain.EstoqueReabastecido;
 import br.com.grupo117.oficina.catalogoestoque.domain.EventoDeDominio;
 import br.com.grupo117.oficina.catalogoestoque.domain.Peca;
-import br.com.grupo117.oficina.catalogoestoque.domain.PecaReservada;
 import br.com.grupo117.oficina.catalogoestoque.domain.TipoItemEstoque;
-import br.com.grupo117.oficina.catalogoestoque.infrastructure.api.BaixaResponse;
 import br.com.grupo117.oficina.catalogoestoque.infrastructure.api.PecaResponse;
-import br.com.grupo117.oficina.catalogoestoque.infrastructure.api.ReservaResponse;
 import br.com.grupo117.oficina.infra.security.JwtTestSupport;
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,7 +38,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import(CatalogoEstoqueApiIntegrationTest.EventosConfig.class)
 class CatalogoEstoqueApiIntegrationTest extends AbstractIntegrationTest {
     private static final String PECAS = "/api/pecas";
-    private static final String RESERVAS = "/api/estoque/reservas";
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -57,34 +52,6 @@ class CatalogoEstoqueApiIntegrationTest extends AbstractIntegrationTest {
     void limparEstoque() {
         jdbc.execute("TRUNCATE TABLE peca CASCADE");
         eventos.limpar();
-    }
-
-    @Test
-    void cadastraReservaEBaixaConsumindoAReserva() {
-        PecaResponse filtro = cadastrar("Filtro de oleo", 5);
-        UUID os = UUID.randomUUID();
-
-        ResponseEntity<ReservaResponse> reserva = post(RESERVAS, reserva(os, filtro.id(), 3), "ATENDENTE",
-                ReservaResponse.class);
-        assertThat(reserva.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(reserva.getBody()).isNotNull();
-        assertThat(detalhar(filtro.id())).extracting(PecaResponse::quantidadeDisponivel,
-                PecaResponse::quantidadeReservada, PecaResponse::quantidadeLivre).containsExactly(5, 3, 2);
-
-        BaixaResponse baixa = post(baixa(os), null, "MECANICO", BaixaResponse.class).getBody();
-        assertThat(baixa).isEqualTo(new BaixaResponse(1));
-        assertThat(detalhar(filtro.id())).extracting(PecaResponse::quantidadeDisponivel,
-                PecaResponse::quantidadeReservada).containsExactly(2, 0);
-        assertThat(jdbc.queryForObject("select status from reserva_de_estoque where id = ?", String.class,
-                reserva.getBody().reservaId())).isEqualTo("BAIXADA");
-
-        BaixaResponse repetida = post(baixa(os), null, "MECANICO", BaixaResponse.class).getBody();
-        assertThat(repetida).isEqualTo(new BaixaResponse(0));
-        assertThat(detalhar(filtro.id()).quantidadeDisponivel()).isEqualTo(2);
-
-        assertThat(eventos.stream(PecaReservada.class)).hasSize(1);
-        assertThat(eventos.stream(EstoqueBaixado.class)).singleElement()
-                .extracting(EstoqueBaixado::quantidade).isEqualTo(3);
     }
 
     @Test
@@ -117,29 +84,12 @@ class CatalogoEstoqueApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void reservaAcimaDoLivreRetorna409SemAlterarOEstoque() {
-        PecaResponse vela = cadastrar("Vela", 2);
-
-        ResponseEntity<String> resposta = post(RESERVAS, reserva(UUID.randomUUID(), vela.id(), 3), "ATENDENTE",
-                String.class);
-
-        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(resposta.getBody()).contains("Estoque insuficiente: solicitado 3, livre 2");
-        assertThat(detalhar(vela.id()).quantidadeReservada()).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from reserva_de_estoque", Long.class)).isZero();
-    }
-
-    @Test
     void pecaInexistenteRetorna404() {
         UUID ausente = UUID.randomUUID();
 
         assertThat(getStatus(PECAS + "/" + ausente, "ATENDENTE")).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(post(PECAS + "/" + ausente + "/entradas", Map.of("quantidade", 1), "ADMINISTRADOR",
                 String.class).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        ResponseEntity<String> reserva = post(RESERVAS, reserva(UUID.randomUUID(), ausente, 1), "ATENDENTE",
-                String.class);
-        assertThat(reserva.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(reserva.getBody()).contains("Peca nao encontrada");
     }
 
     @Test
@@ -164,14 +114,10 @@ class CatalogoEstoqueApiIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(restTemplate.getForEntity(PECAS, String.class).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(restTemplate.postForEntity(RESERVAS, reserva(UUID.randomUUID(), vela.id(), 1), String.class)
-                .getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(post(PECAS, novaPeca("Pastilha", 1), "ATENDENTE", String.class).getStatusCode())
                 .isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(post(PECAS + "/" + vela.id() + "/entradas", Map.of("quantidade", 1), "MECANICO",
                 String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(post(RESERVAS, reserva(UUID.randomUUID(), vela.id(), 1), "OUTRO", String.class)
-                .getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(getStatus(PECAS, "MECANICO")).isEqualTo(HttpStatus.OK);
         assertThat(detalhar(vela.id()).quantidadeReservada()).isZero();
     }
@@ -201,8 +147,9 @@ class CatalogoEstoqueApiIntegrationTest extends AbstractIntegrationTest {
     void swaggerDocumentaPecasEEstoque() {
         ResponseEntity<String> docs = restTemplate.getForEntity("/v3/api-docs", String.class);
 
-        assertThat(docs.getBody()).contains(PECAS, PECAS + "/{id}", PECAS + "/{id}/entradas", RESERVAS,
-                "/api/estoque/ordens-de-servico/{ordemDeServicoId}/baixa", "Pecas e insumos", "Estoque da OS");
+        assertThat(docs.getBody()).contains(PECAS, PECAS + "/{id}", PECAS + "/{id}/entradas", "Pecas e insumos");
+        assertThat(docs.getBody()).doesNotContain("/api/estoque/reservas",
+                "/api/estoque/ordens-de-servico/{ordemDeServicoId}/baixa");
     }
 
     private PecaResponse cadastrar(String nome, int quantidade) {
@@ -231,14 +178,6 @@ class CatalogoEstoqueApiIntegrationTest extends AbstractIntegrationTest {
     private static Map<String, Object> novaPeca(String nome, int quantidade) {
         return Map.of("nome", nome, "descricao", "Item de teste", "tipo", TipoItemEstoque.PECA.name(),
                 "precoUnitario", new BigDecimal("35.90"), "quantidadeInicial", quantidade);
-    }
-
-    private static Map<String, Object> reserva(UUID os, UUID pecaId, int quantidade) {
-        return Map.of("ordemDeServicoId", os, "pecaId", pecaId, "quantidade", quantidade);
-    }
-
-    private static String baixa(UUID os) {
-        return "/api/estoque/ordens-de-servico/" + os + "/baixa";
     }
 
     private static HttpHeaders headers(String papel) {

@@ -86,6 +86,7 @@ class OrdemDeServicoTest {
     private static Stream<Arguments> transicoesValidas() {
         return Stream.of(
                 Arguments.of(StatusOS.RECEBIDA, StatusOS.EM_DIAGNOSTICO),
+                Arguments.of(StatusOS.RECEBIDA, StatusOS.AGUARDANDO_APROVACAO),
                 Arguments.of(StatusOS.EM_DIAGNOSTICO, StatusOS.AGUARDANDO_APROVACAO),
                 Arguments.of(StatusOS.AGUARDANDO_APROVACAO, StatusOS.EM_EXECUCAO),
                 Arguments.of(StatusOS.EM_EXECUCAO, StatusOS.FINALIZADA),

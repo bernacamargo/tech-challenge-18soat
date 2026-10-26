@@ -6,15 +6,14 @@
 - Validação e leitura do Clock antes de chamar `BaixaEstoquePort.baixarReservas(osId)`.
 - Baixa bem-sucedida seguida de transição para Em execução, início registrado e gravação.
 - Rejeição com data/motivo, preservando Aguardando aprovação, itens e orçamento (ADR 0012).
-- Rejeição não inicia execução nem aciona baixa. Não se aprova orçamento rejeitado sem revisão.
+- Rejeição devolve as reservas ativas ao saldo livre e não inicia execução. Não se aprova orçamento rejeitado sem revisão.
 - Testes sem Spring usando relógio fixo e ports fake, inclusive falhas e ordem de chamadas.
 
 ## Integração de aprovação com estoque
 
-`AprovarOrcamento` é registrado como bean e exposto por POST
-`/api/ordens-de-servico/{id}/aprovacao`. ATENDENTE/ADMINISTRADOR registra a aprovação do cliente.
-O comando inicia a execução na mesma operação e retorna a OS com `iniciadaEm` persistido.
-O caso de uso de rejeição permanece sem endpoint/wiring; não há comando público de decisão.
+`AprovarOrcamento` e `RejeitarOrcamento` são registrados como beans e expostos sem JWT em
+`POST /api/acompanhamento/ordens-de-servico/{id}/aprovacao` e `.../rejeicao` (ADR 0015).
+Aprovar inicia a execução na mesma operação. Rejeitar cancela as reservas ativas.
 
 `EstoqueOSAdapter` confere a correspondência exata de itens, vínculos e reservas, exige baixa
 integral e participa da mesma transação da OS. Falha posterior ao consumo desfaz a baixa e a

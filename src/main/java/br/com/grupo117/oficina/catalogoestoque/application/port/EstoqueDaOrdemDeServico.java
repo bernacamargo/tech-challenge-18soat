@@ -18,4 +18,10 @@ public interface EstoqueDaOrdemDeServico {
      * desconta o estoque duas vezes.
      */
     int baixarReservasDaOrdemDeServico(UUID ordemDeServicoId);
+
+    /**
+     * Desfaz as reservas ativas da OS rejeitada: a quantidade volta ao saldo livre.
+     * Reservas já canceladas são ignoradas.
+     */
+    int cancelarReservasDaOrdemDeServico(UUID ordemDeServicoId);
 }

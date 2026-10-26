@@ -8,6 +8,7 @@ import br.com.grupo117.oficina.atendimento.application.usecase.IniciarDiagnostic
 import br.com.grupo117.oficina.atendimento.application.usecase.ConcluirServicos;
 import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
 import br.com.grupo117.oficina.atendimento.application.usecase.GerarOrcamento;
+import br.com.grupo117.oficina.atendimento.application.usecase.SubmeterOrdemDeServico;
 import br.com.grupo117.oficina.atendimento.infrastructure.persistence.OperacaoOSLock;
 import java.util.List;
 import java.util.UUID;
@@ -26,12 +27,14 @@ public class OrdemDeServicoService {
     private final ConcluirServicos concluirServicos;
     private final RegistrarEntrega registrarEntrega;
     private final GerarOrcamento gerarOrcamento;
+    private final SubmeterOrdemDeServico submeterOrdem;
     private final OperacaoOSLock locks;
 
     public OrdemDeServicoService(CriarOrdemDeServico criar, ListarOrdensDeServico listar,
                                   DetalharOrdemDeServico detalhar, IniciarDiagnostico iniciarDiagnostico,
                                   ConcluirServicos concluirServicos, RegistrarEntrega registrarEntrega,
-                                  GerarOrcamento gerarOrcamento, OperacaoOSLock locks) {
+                                  GerarOrcamento gerarOrcamento, SubmeterOrdemDeServico submeterOrdem,
+                                  OperacaoOSLock locks) {
         this.criar = criar;
         this.listar = listar;
         this.detalhar = detalhar;
@@ -39,11 +42,17 @@ public class OrdemDeServicoService {
         this.concluirServicos = concluirServicos;
         this.registrarEntrega = registrarEntrega;
         this.gerarOrcamento = gerarOrcamento;
+        this.submeterOrdem = submeterOrdem;
         this.locks = locks;
     }
 
     public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano) {
         return criar.criar(documento, nome, placa, marca, modelo, ano);
+    }
+
+    public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
+                               UUID servicoId, UUID pecaId, Integer quantidade) {
+        return criar.criar(documento, nome, placa, marca, modelo, ano, servicoId, pecaId, quantidade);
     }
 
     @Transactional(readOnly = true)
@@ -57,5 +66,10 @@ public class OrdemDeServicoService {
     public OrdemDeServico concluirServicos(UUID id) { locks.bloquearOrdem(id); return concluirServicos.concluir(id); }
 
     public OrdemDeServico registrarEntrega(UUID id) { locks.bloquearOrdem(id); return registrarEntrega.registrar(id); }
-    public OrdemDeServico gerarOrcamento(UUID id) { locks.bloquearOrdem(id); return gerarOrcamento.gerar(id); }
+
+    public OrdemDeServico concluirDiagnostico(UUID id) { locks.bloquearOrdem(id); return gerarOrcamento.gerar(id); }
+
+    public OrdemDeServico submeter(UUID id) { locks.bloquearOrdem(id); return submeterOrdem.submeter(id); }
+
+    public OrdemDeServico gerarOrcamento(UUID id) { return concluirDiagnostico(id); }
 }
