@@ -51,3 +51,10 @@
 - **Orçamento**: somatório de serviços e peças da OS, enviado ao cliente para aprovação.
 - **Reserva de estoque**: quantidade de peça separada para uma OS antes da execução.
 - **Tempo médio de execução**: métrica calculada pelo sistema entre OS iniciada e finalizada.
+
+## Contato e notificação de orçamento
+
+- **Email**: endereço de contato do cliente, validado sintaticamente. Opcional para cadastros legados.
+- **Orçamento pronto**: geração por conclusão do diagnóstico ou submissão agenda o envio ao cliente.
+- **Notificação pendente**: snapshot técnico persistido no PostgreSQL; enviado somente após commit,
+  com retry SMTP e espera por contato ausente. Não altera o estado da OS nem a decisão do cliente.
