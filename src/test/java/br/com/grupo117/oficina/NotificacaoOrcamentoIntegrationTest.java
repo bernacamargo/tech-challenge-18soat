@@ -128,7 +128,7 @@ class NotificacaoOrcamentoIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void cadastroValidaEmailPreservaContatoEConfidencialidade() {
-        for (String email : new String[]{"invalido", "", "a@b.com\r\nBcc:x@y.com"}) {
+        for (String email : new String[]{"invalido", "", "a@b.com\r\nBcc:x@y.com", "a@" + "a.".repeat(10000)}) {
             var resposta = restTemplate.exchange("/api/clientes", HttpMethod.POST,
                     new HttpEntity<>(Map.of("nome", "Maria", "cpfCnpj", "52998224725", "email", email), headers()), String.class);
             assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);

@@ -10,7 +10,7 @@ public record AlterarClienteRequest(
         @NotBlank(message = "Nome do cliente e obrigatorio")
         @Size(max = 150, message = "Nome do cliente deve ter no maximo 150 caracteres")
         String nome,
-        @Email @Size(max = 254) @Pattern(regexp = "[^\\s@<>]+@[^\\s@<>.]+(?:\\.[^\\s@<>.]+)+")
+        @Email @Size(max = 254) @Pattern(regexp = "[^\\s@<>]++@[^\\s@<>.]++(?:\\.[^\\s@<>.]++)++")
         @Schema(description = "E-mail para envio do orçamento. Opcional para compatibilidade; sem contato o envio aguarda o cadastro.")
         String email
 ) {

@@ -12,7 +12,7 @@ public record OrdemDeServicoRequest(@NotBlank String documento, @NotBlank String
         @NotBlank String placa, @NotBlank String marca, @NotBlank String modelo, @NotNull Integer ano,
         UUID servicoId, UUID pecaId, Integer quantidade,
         @Email @Size(max = 254)
-        @Pattern(regexp = "[^\\s@<>]+@[^\\s@<>.]+(?:\\.[^\\s@<>.]+)+")
+        @Pattern(regexp = "[^\\s@<>]++@[^\\s@<>.]++(?:\\.[^\\s@<>.]++)++")
         @Schema(description = "Contato para envio do orçamento; preenche apenas cadastro novo ou sem e-mail")
         String email) {
 

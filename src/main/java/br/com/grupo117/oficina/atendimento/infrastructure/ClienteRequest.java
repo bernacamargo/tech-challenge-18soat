@@ -12,7 +12,7 @@ public record ClienteRequest(
         String nome,
         @NotBlank(message = "CPF/CNPJ e obrigatorio")
         String cpfCnpj,
-        @Email @Size(max = 254) @Pattern(regexp = "[^\\s@<>]+@[^\\s@<>.]+(?:\\.[^\\s@<>.]+)+")
+        @Email @Size(max = 254) @Pattern(regexp = "[^\\s@<>]++@[^\\s@<>.]++(?:\\.[^\\s@<>.]++)++")
         @Schema(description = "E-mail para envio do orçamento. Opcional para compatibilidade; sem contato o envio aguarda o cadastro.")
         String email
 ) {
