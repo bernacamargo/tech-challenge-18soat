@@ -1,11 +1,12 @@
 package br.com.grupo117.oficina.atendimento.application;
 
 import br.com.grupo117.oficina.atendimento.domain.Cliente;
+import br.com.grupo117.oficina.atendimento.domain.Email;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpj;
 import java.util.Objects;
 
 /**
- * Altera o nome do cliente ja cadastrado. O CPF/CNPJ continua sendo a identidade.
+ * Altera nome e contato do cliente já cadastrado. O CPF/CNPJ continua sendo a identidade.
  */
 public final class AlterarCliente {
 
@@ -15,11 +16,14 @@ public final class AlterarCliente {
         this.clientes = Objects.requireNonNull(clientes, "Repositorio de clientes e obrigatorio");
     }
 
-    public Cliente alterar(String documento, String nome) {
+    public Cliente alterar(String documento, String nome) { return alterar(documento, nome, null); }
+
+    public Cliente alterar(String documento, String nome, String email) {
+        Email contato = email == null ? null : new Email(email);
         CpfCnpj cpfCnpj = CpfCnpj.de(documento);
-        if (clientes.buscarPorCpfCnpj(cpfCnpj).isEmpty()) {
-            throw new ClienteNaoEncontradoException(cpfCnpj);
-        }
-        return clientes.salvar(new Cliente(nome, cpfCnpj));
+        Cliente existente = clientes.buscarPorCpfCnpj(cpfCnpj)
+                .orElseThrow(() -> new ClienteNaoEncontradoException(cpfCnpj));
+        return clientes.salvar(new Cliente(nome, cpfCnpj,
+                contato == null ? existente.email().orElse(null) : contato));
     }
 }
