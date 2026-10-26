@@ -28,11 +28,20 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/oficina
       DB_USERNAME: oficina
       DB_PASSWORD: oficina
+      # issuer publico (igual ao iss do token) e JWKS pela rede interna; lidas a partir do T18
+      OAUTH2_ISSUER_URI: http://localhost:8081/realms/oficina
+      OAUTH2_JWK_SET_URI: http://keycloak:8080/realms/oficina/protocol/openid-connect/certs
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
     profiles: [full]
 
   keycloak-db:
