@@ -15,6 +15,12 @@ class EmailTest {
     }
 
     @Test
+    void validaSubdominiosERejeitaEntradaExcessivaSemRecursao() {
+        assertThat(new Email("maria@" + "a.".repeat(100) + "com").valor()).endsWith("a.com");
+        assertThatIllegalArgumentException().isThrownBy(() -> new Email("a@" + "a.".repeat(10000)));
+    }
+
+    @Test
     void validaTamanhoEPreservaCaixaDoEndereco() {
         assertThat(new Email("Maria+oficina@exemplo.com").valor()).isEqualTo("Maria+oficina@exemplo.com");
         assertThatIllegalArgumentException().isThrownBy(() -> new Email("a".repeat(250) + "@b.com"));
