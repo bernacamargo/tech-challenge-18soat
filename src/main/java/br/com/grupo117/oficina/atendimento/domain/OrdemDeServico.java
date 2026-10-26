@@ -141,10 +141,23 @@ public final class OrdemDeServico {
         }
     }
 
+    /** Política ao concluir o diagnóstico com itens: calcula o orçamento e envia para aprovação. */
     public Orcamento gerarOrcamento() {
         if (status != StatusOS.EM_DIAGNOSTICO) {
             throw new IllegalStateException("Geração de orçamento não permitida em " + status);
         }
+        return calcularOrcamentoEEnviarParaAprovacao();
+    }
+
+    /** Submissão do mecânico, direta da OS recebida ou depois do diagnóstico. */
+    public Orcamento submeter() {
+        if (status != StatusOS.RECEBIDA && status != StatusOS.EM_DIAGNOSTICO) {
+            throw new IllegalStateException("Submissão não permitida em " + status);
+        }
+        return calcularOrcamentoEEnviarParaAprovacao();
+    }
+
+    private Orcamento calcularOrcamentoEEnviarParaAprovacao() {
         Orcamento gerado = new Orcamento(itens);
         transicionarPara(StatusOS.AGUARDANDO_APROVACAO);
         orcamento = gerado;
@@ -168,7 +181,7 @@ public final class OrdemDeServico {
         itens.add(item);
     }
 
-    /** Aplica somente as transições consecutivas previstas no Event Storming. */
+    /** Aplica as transições previstas no Event Storming, inclusive a submissão direta da OS recebida. */
     public void transicionarPara(StatusOS destino) {
         transicionarPara(destino, Instant.now());
     }
@@ -177,7 +190,7 @@ public final class OrdemDeServico {
         Objects.requireNonNull(momento, "Momento da transição é obrigatório");
         Objects.requireNonNull(destino, "Status de destino é obrigatório");
         boolean permitida = switch (status) {
-            case RECEBIDA -> destino == StatusOS.EM_DIAGNOSTICO;
+            case RECEBIDA -> destino == StatusOS.EM_DIAGNOSTICO || destino == StatusOS.AGUARDANDO_APROVACAO;
             case EM_DIAGNOSTICO -> destino == StatusOS.AGUARDANDO_APROVACAO;
             case AGUARDANDO_APROVACAO -> destino == StatusOS.EM_EXECUCAO;
             case EM_EXECUCAO -> destino == StatusOS.FINALIZADA;

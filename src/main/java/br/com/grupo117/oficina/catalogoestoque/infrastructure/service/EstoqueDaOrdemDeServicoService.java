@@ -30,4 +30,9 @@ public class EstoqueDaOrdemDeServicoService implements EstoqueDaOrdemDeServico {
     public int baixarReservasDaOrdemDeServico(UUID ordemDeServicoId) {
         return movimentar.baixarReservasDaOrdemDeServico(ordemDeServicoId);
     }
+
+    @Override
+    public int cancelarReservasDaOrdemDeServico(UUID ordemDeServicoId) {
+        return movimentar.cancelarReservasDaOrdemDeServico(ordemDeServicoId);
+    }
 }

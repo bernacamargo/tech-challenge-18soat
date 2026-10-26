@@ -26,10 +26,11 @@ public class OrdemDeServicoController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ATENDENTE', 'ADMINISTRADOR')")
-    @Operation(summary = "Abre uma OS em Recebida", description = "Cadastra cliente/veículo ausentes em uma única transação")
+    @Operation(summary = "Abre uma OS em Recebida", description = "Identifica cliente e veículo. Se servicoId ou pecaId vier preenchido, aponta o item da lista de disponibilidade; peça reserva estoque.")
     public ResponseEntity<OrdemDeServicoResponse> criar(@Valid @RequestBody OrdemDeServicoRequest request) {
         OrdemDeServico os = service.criar(request.documento(), request.nome(), request.placa(),
-                request.marca(), request.modelo(), request.ano());
+                request.marca(), request.modelo(), request.ano(), request.servicoId(), request.pecaId(),
+                request.quantidade());
         return ResponseEntity.created(URI.create("/api/ordens-de-servico/" + os.id()))
                 .body(OrdemDeServicoResponse.de(os));
     }
@@ -78,14 +79,25 @@ public class OrdemDeServicoController {
         return OrdemDeServicoResponse.de(service.registrarEntrega(id));
     }
 
-    @PostMapping("/{id}/orcamento")
-    @PreAuthorize("hasAnyRole('ATENDENTE', 'ADMINISTRADOR')")
-    @Operation(summary = "Gera o orçamento da OS", description = "Soma os itens registrados e altera Em diagnóstico para Aguardando aprovação. Não recebe corpo nem envia e-mail.")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "OS com orçamento gerado"),
+    @PostMapping("/{id}/diagnostico/conclusao")
+    @PreAuthorize("hasAnyRole('MECANICO', 'ADMINISTRADOR')")
+    @Operation(summary = "Conclui o diagnóstico", description = "Com itens, a política gera o orçamento e muda o status para Aguardando aprovação. Não recebe corpo.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Orçamento gerado e enviado para aprovação"),
             @ApiResponse(responseCode = "400", description = "OS sem itens ou identificador inválido"),
             @ApiResponse(responseCode = "404", description = "OS não encontrada"),
-            @ApiResponse(responseCode = "409", description = "Geração não permitida no estado atual")})
-    public OrdemDeServicoResponse gerarOrcamento(@PathVariable UUID id) {
-        return OrdemDeServicoResponse.de(service.gerarOrcamento(id));
+            @ApiResponse(responseCode = "409", description = "Conclusão não permitida no estado atual")})
+    public OrdemDeServicoResponse concluirDiagnostico(@PathVariable UUID id) {
+        return OrdemDeServicoResponse.de(service.concluirDiagnostico(id));
+    }
+
+    @PostMapping("/{id}/submissao")
+    @PreAuthorize("hasAnyRole('MECANICO', 'ADMINISTRADOR')")
+    @Operation(summary = "Submete a ordem de serviço", description = "A partir de Recebida ou Em diagnóstico, com itens, calcula o orçamento e envia para aprovação. Não recebe corpo.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OS submetida e orçamento enviado para aprovação"),
+            @ApiResponse(responseCode = "400", description = "OS sem itens ou identificador inválido"),
+            @ApiResponse(responseCode = "404", description = "OS não encontrada"),
+            @ApiResponse(responseCode = "409", description = "Submissão não permitida no estado atual")})
+    public OrdemDeServicoResponse submeter(@PathVariable UUID id) {
+        return OrdemDeServicoResponse.de(service.submeter(id));
     }
 }

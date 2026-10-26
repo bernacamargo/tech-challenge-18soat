@@ -15,10 +15,11 @@ nulo e rejeição dos cinco estados inválidos, sem salvar a OS nesses casos.
 
 ## Integração REST e persistência
 
-`POST /api/ordens-de-servico/{id}/orcamento` aciona o caso de uso por
-`OrdemDeServicoService`, em transação, exigindo ATENDENTE ou ADMINISTRADOR. Sem corpo de
+`POST /api/ordens-de-servico/{id}/diagnostico/conclusao` aciona o caso de uso por
+`OrdemDeServicoService`, em transação, exigindo MECANICO ou ADMINISTRADOR. Sem corpo de
 requisição; retorna a OS com orçamento e status atualizado. OS vazia retorna 400 e geração
 fora de Em diagnóstico retorna 409. Repetição não sobrescreve o orçamento anterior.
+`POST /{id}/submissao` aceita também a OS recebida.
 
 O adaptador JPA preserva itens, preços e total, verificando consistência ao reconstituir o
 agregado (ADR 0011). Testes de integração cobrem geração, consulta, segurança e rollback real.

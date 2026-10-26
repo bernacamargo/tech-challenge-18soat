@@ -4,16 +4,21 @@ import br.com.grupo117.oficina.atendimento.application.CadastrarVeiculo;
 import br.com.grupo117.oficina.atendimento.application.IdentificarCliente;
 import br.com.grupo117.oficina.atendimento.application.ClienteRepositorio;
 import br.com.grupo117.oficina.atendimento.application.VeiculoRepositorio;
+import br.com.grupo117.oficina.atendimento.application.port.CatalogoOSPort;
+import br.com.grupo117.oficina.atendimento.application.port.ItemCatalogo;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 
 import br.com.grupo117.oficina.atendimento.domain.Cliente;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpj;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpjInvalidoException;
+import br.com.grupo117.oficina.atendimento.domain.ItemDaOS;
 import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
 import br.com.grupo117.oficina.atendimento.domain.Placa;
 import br.com.grupo117.oficina.atendimento.domain.PlacaInvalidaException;
 import br.com.grupo117.oficina.atendimento.domain.StatusOS;
+import br.com.grupo117.oficina.atendimento.domain.TipoItemOS;
 import br.com.grupo117.oficina.atendimento.domain.Veiculo;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,8 +36,7 @@ class CriarOrdemDeServicoTest {
     private final ClientesFake clientes = new ClientesFake();
     private final VeiculosFake veiculos = new VeiculosFake();
     private final OrdensFake ordens = new OrdensFake();
-    private final CriarOrdemDeServico criar = new CriarOrdemDeServico(
-            new IdentificarCliente(clientes), new CadastrarVeiculo(clientes, veiculos), veiculos, ordens);
+    private final CriarOrdemDeServico criar = novoCaso(veiculos, ordens, catalogoVazio(), (a, b, c, d) -> false);
 
     @Test
     void cadastraClienteEVeiculoEAbreOsRecebida() {
@@ -114,6 +118,87 @@ class CriarOrdemDeServicoTest {
     }
 
     @Test
+    void apontaServicoDaListaDeDisponibilidadeAoAbrir() {
+        UUID servicoId = UUID.randomUUID();
+        CriarOrdemDeServico caso = novoCaso(veiculos, ordens, catalogo(servicoId, null), (a, b, c, d) -> false);
+
+        OrdemDeServico os = caso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012, servicoId, null, 2);
+
+        assertThat(os.status()).isEqualTo(StatusOS.RECEBIDA);
+        assertThat(os.itens()).singleElement().satisfies(item -> {
+            assertThat(item.tipo()).isEqualTo(TipoItemOS.SERVICO);
+            assertThat(item.catalogoId()).isEqualTo(servicoId);
+            assertThat(item.quantidade()).isEqualTo(2);
+            assertThat(item.descricao()).isEqualTo("Troca de óleo");
+        });
+    }
+
+    @Test
+    void apontaPecaEReservaEstoqueAoAbrir() {
+        UUID pecaId = UUID.randomUUID();
+        List<UUID> reservas = new ArrayList<>();
+        CriarOrdemDeServico caso = novoCaso(veiculos, ordens, catalogo(null, pecaId),
+                (osId, itemId, peca, quantidade) -> { reservas.add(peca); return true; });
+
+        OrdemDeServico os = caso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012, null, pecaId, 3);
+
+        assertThat(reservas).containsExactly(pecaId);
+        assertThat(os.itens()).singleElement().extracting(ItemDaOS::tipo).isEqualTo(TipoItemOS.PECA);
+        assertThat(os.status()).isEqualTo(StatusOS.RECEBIDA);
+    }
+
+    @Test
+    void estoqueInsuficienteNaoIncluiAPecaApontada() {
+        UUID pecaId = UUID.randomUUID();
+        CriarOrdemDeServico caso = novoCaso(veiculos, ordens, catalogo(null, pecaId), (a, b, c, d) -> false);
+
+        assertThatThrownBy(() -> caso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012, null, pecaId, 1))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Estoque insuficiente");
+        assertThat(ordens.salvas.getFirst().itens()).isEmpty();
+    }
+
+    @Test
+    void recusaApontarServicoEPecaJuntosOuSemQuantidade() {
+        UUID id = UUID.randomUUID();
+        CriarOrdemDeServico caso = novoCaso(veiculos, ordens, catalogo(id, id), (a, b, c, d) -> true);
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> caso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012, id, id, 1))
+                .withMessage("Aponte um serviço ou uma peça");
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> caso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012, id, null, null))
+                .withMessage("Quantidade deve ser positiva");
+    }
+
+    private CriarOrdemDeServico novoCaso(VeiculoRepositorio veiculosDoCaso, OrdemDeServicoRepositorio ordensDoCaso,
+                                        CatalogoOSPort catalogo, br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort estoque) {
+        return new CriarOrdemDeServico(new IdentificarCliente(clientes), new CadastrarVeiculo(clientes, veiculosDoCaso),
+                veiculosDoCaso, ordensDoCaso, catalogo, estoque);
+    }
+
+    private static CatalogoOSPort catalogoVazio() {
+        return catalogo(null, null);
+    }
+
+    private static CatalogoOSPort catalogo(UUID servicoId, UUID pecaId) {
+        return new CatalogoOSPort() {
+            @Override
+            public Optional<ItemCatalogo> buscarServico(UUID id) {
+                return servicoId != null && servicoId.equals(id)
+                        ? Optional.of(new ItemCatalogo(id, "Troca de óleo", new BigDecimal("80.50")))
+                        : Optional.empty();
+            }
+
+            @Override
+            public Optional<ItemCatalogo> buscarPeca(UUID id) {
+                return pecaId != null && pecaId.equals(id)
+                        ? Optional.of(new ItemCatalogo(id, "Óleo", new BigDecimal("25.25")))
+                        : Optional.empty();
+            }
+        };
+    }
+
+    @Test
     void falhaAoSalvarVeiculoNaoSalvaOs() {
         VeiculoRepositorio falho = new VeiculosFake() {
             @Override
@@ -121,8 +206,7 @@ class CriarOrdemDeServicoTest {
                 throw new IllegalStateException("Falha de persistência");
             }
         };
-        CriarOrdemDeServico casoDeUso = new CriarOrdemDeServico(new IdentificarCliente(clientes),
-                new CadastrarVeiculo(clientes, falho), falho, ordens);
+        CriarOrdemDeServico casoDeUso = novoCaso(falho, ordens, catalogoVazio(), (a, b, c, d) -> false);
 
         assertThatThrownBy(() -> casoDeUso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012))
                 .isInstanceOf(IllegalStateException.class).hasMessage("Falha de persistência");

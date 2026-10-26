@@ -43,7 +43,7 @@ Abra uma OS e inclua o serviço de troca de óleo (uma unidade):
 ```http
 POST /api/ordens-de-servico/{id}/servicos
 Content-Type: application/json
-Authorization: Bearer <JWT de ATENDENTE ou ADMINISTRADOR>
+Authorization: Bearer <JWT de MECANICO ou ADMINISTRADOR>
 
 {"servicoId":"11700000-0000-4000-8000-000000000101","quantidade":1}
 ```
@@ -58,8 +58,7 @@ Authorization: Bearer <JWT de ATENDENTE, MECANICO ou ADMINISTRADOR>
 {"pecaId":"11700000-0000-4000-8000-000000000201","quantidade":3}
 ```
 
-Na primeira execução, o óleo ficará com físico 20, reservado 3 e livre 17. Inicie diagnóstico
-e gere orçamento: total de **R$ 156,25**. Registre aprovação: execução iniciada e saldo físico
+Na primeira execução, o óleo ficará com físico 20, reservado 3 e livre 17. Inicie e conclua o diagnóstico para gerar o orçamento: total de **R$ 156,25**. Registre aprovação: execução iniciada e saldo físico
 17, reservado 0, livre 17. Conclua os serviços e registre a entrega. Para conferir papéis,
 rotas e respostas, veja a [documentação da API](api/ordens-de-servico.md).
 
