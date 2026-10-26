@@ -87,7 +87,7 @@ No código (Java/Spring Boot): normalmente `record` e/ou `@Embeddable`; `StatusO
 
 | Contrato | Contexto | Por que fica no `domain` |
 |---|---|---|
-| `ValidadorDeCredencial` | Identidade e Acesso | A issue #4 define o contrato de autenticação no domínio; é um desvio consciente da ADR 0001, que coloca ports na `application`, registrado na ADR de integração operacional com o Keycloak (issue #6). Valida a credencial junto ao provedor e devolve `DadosDaCredencial`. Credencial recusada é `CredencialInvalidaException`; falha do provedor (indisponível, rede) não é credencial inválida e não é convertida. Credencial válida sem perfil da oficina é `UsuarioSemPerfilDaOficinaException`, lançada por `UsuarioAdministrativo`. A implementação com o Keycloak fica na infraestrutura (issue #6). |
+| `ValidadorDeCredencial` | Identidade e Acesso | A issue #4 define o contrato de autenticação no domínio; é um desvio consciente da ADR 0001, que coloca ports na `application`, a ser registrado na ADR de integração operacional com o Keycloak (issue #6). Valida a credencial junto ao provedor e devolve `DadosDaCredencial`. Credencial recusada é `CredencialInvalidaException`; falha do provedor (indisponível, rede) não é credencial inválida e não é convertida. Credencial válida sem perfil da oficina é `UsuarioSemPerfilDaOficinaException`, lançada por `UsuarioAdministrativo`. A implementação com o Keycloak fica na infraestrutura (issue #6). |
 
 ---
 

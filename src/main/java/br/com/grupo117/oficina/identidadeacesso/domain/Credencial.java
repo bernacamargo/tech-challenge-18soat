@@ -7,6 +7,8 @@ package br.com.grupo117.oficina.identidadeacesso.domain;
  */
 public record Credencial(String valor) {
 
+    /** null/branco: "Credencial ausente"; qualquer caractere de espaco: "Credencial invalida".
+     *  Nao faz trim: o valor e guardado exatamente como recebido. */
     public Credencial {
         if (valor == null || valor.isBlank()) {
             throw new CredencialInvalidaException("Credencial ausente");

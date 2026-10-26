@@ -11,6 +11,9 @@ import java.util.stream.Collectors;
  */
 public record UsuarioAdministrativo(String id, String login, Set<Perfil> perfis) {
 
+    /** Nesta ordem: id e depois login (null/branco: CredencialInvalidaException); perfis null
+     *  vira vazio, elementos null sao descartados e, se nao sobrar perfil,
+     *  UsuarioSemPerfilDaOficinaException(id). Sem trim de id/login. */
     public UsuarioAdministrativo {
         if (id == null || id.isBlank()) {
             throw new CredencialInvalidaException("Credencial sem identificador");
@@ -26,6 +29,7 @@ public record UsuarioAdministrativo(String id, String login, Set<Perfil> perfis)
         }
     }
 
+    /** Dados null: CredencialInvalidaException; perfis filtrados por Perfil.reconhecer. */
     public static UsuarioAdministrativo de(DadosDaCredencial dados) {
         if (dados == null) {
             throw new CredencialInvalidaException("Credencial invalida");
@@ -33,6 +37,7 @@ public record UsuarioAdministrativo(String id, String login, Set<Perfil> perfis)
         return new UsuarioAdministrativo(dados.sujeito(), dados.login(), Perfil.reconhecer(dados.perfisInformados()));
     }
 
+    /** false para perfil null ou ausente. */
     public boolean possui(Perfil perfil) {
         return perfil != null && perfis.contains(perfil);
     }

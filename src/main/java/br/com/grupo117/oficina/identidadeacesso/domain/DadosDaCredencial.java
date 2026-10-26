@@ -13,6 +13,8 @@ import java.util.stream.Collectors;
  */
 public record DadosDaCredencial(String sujeito, String login, Set<String> perfisInformados) {
 
+    /** perfisInformados null vira Set.of(); elementos null sao descartados antes da copia;
+     *  resultado imutavel. Sujeito e login guardados como recebidos. */
     public DadosDaCredencial {
         perfisInformados = perfisInformados == null
                 ? Set.of()

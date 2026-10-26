@@ -10,7 +10,7 @@ public final class CredencialInvalidaException extends RuntimeException {
         super(mensagem);
     }
 
-    /** Usado pelo adapter do provedor (PR3) para preservar a causa tecnica. */
+    /** Usado pelo adapter do provedor (issue #6) para preservar a causa tecnica. */
     public CredencialInvalidaException(String mensagem, Throwable causa) {
         super(mensagem, causa);
     }

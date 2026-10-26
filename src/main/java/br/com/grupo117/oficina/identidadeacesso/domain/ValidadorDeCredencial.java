@@ -2,8 +2,8 @@ package br.com.grupo117.oficina.identidadeacesso.domain;
 
 /**
  * Contrato de validacao de credencial (port definido no dominio pela issue #4; desvio
- * consciente da ADR 0001, que poe ports na application, registrado na ADR de integracao
- * operacional com o Keycloak). A implementacao fica na infraestrutura.
+ * consciente da ADR 0001, que poe ports na application; sera registrado na ADR de integracao
+ * operacional com o Keycloak, issue #6). A implementacao fica na infraestrutura (issue #6).
  */
 public interface ValidadorDeCredencial {
 
