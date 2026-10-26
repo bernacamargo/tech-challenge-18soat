@@ -44,6 +44,11 @@ public final class CriarOrdemDeServico {
 
     public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
                                UUID servicoId, UUID pecaId, Integer quantidade) {
+        return criar(documento, nome, placa, marca, modelo, ano, servicoId, pecaId, quantidade, null);
+    }
+
+    public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
+                               UUID servicoId, UUID pecaId, Integer quantidade, String email) {
         CpfCnpj clienteId = CpfCnpj.de(documento);
         Placa veiculoId = Placa.de(placa);
         Veiculo existente = veiculos.buscarPorPlaca(veiculoId).orElse(null);
@@ -51,7 +56,7 @@ public final class CriarOrdemDeServico {
             throw new IllegalArgumentException("Veículo não pertence ao cliente informado");
         }
 
-        identificarCliente.identificar(documento, nome);
+        identificarCliente.identificar(documento, nome, email);
         if (existente == null) {
             cadastrarVeiculo.cadastrar(documento, placa, marca, modelo, ano);
         }
