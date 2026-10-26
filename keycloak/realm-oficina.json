@@ -1,0 +1,201 @@
+{
+  "realm": "oficina",
+  "enabled": true,
+  "displayName": "Oficina",
+  "sslRequired": "external",
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 900,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxTemporaryLockouts": 0,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "passwordPolicy": "length(8) and notUsername",
+  "eventsEnabled": true,
+  "eventsExpiration": 604800,
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR"
+  ],
+  "adminEventsEnabled": false,
+  "adminEventsDetailsEnabled": false,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@oficina.local",
+    "fromDisplayName": "Oficina",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "ATENDENTE",
+        "description": "Atendimento e criacao de OS"
+      },
+      {
+        "name": "MECANICO",
+        "description": "Diagnostico e execucao"
+      },
+      {
+        "name": "ADMINISTRADOR",
+        "description": "Gestao de clientes, veiculos, servicos, pecas e estoque"
+      }
+    ]
+  },
+  "scopeMappings": [
+    {
+      "client": "oficina-api",
+      "roles": [
+        "ATENDENTE",
+        "MECANICO",
+        "ADMINISTRADOR"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "oficina-api",
+      "name": "Oficina API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": false,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [],
+      "webOrigins": [],
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "optionalClientScopes": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-oficina-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "oficina-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "atendente",
+      "enabled": true,
+      "email": "atendente@oficina.local",
+      "emailVerified": true,
+      "firstName": "Atendente",
+      "lastName": "Demo",
+      "requiredActions": [],
+      "realmRoles": [
+        "ATENDENTE"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Oficina@2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "mecanico",
+      "enabled": true,
+      "email": "mecanico@oficina.local",
+      "emailVerified": true,
+      "firstName": "Mecanico",
+      "lastName": "Demo",
+      "requiredActions": [],
+      "realmRoles": [
+        "MECANICO"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Oficina@2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "administrador",
+      "enabled": true,
+      "email": "administrador@oficina.local",
+      "emailVerified": true,
+      "firstName": "Administrador",
+      "lastName": "Demo",
+      "requiredActions": [],
+      "realmRoles": [
+        "ADMINISTRADOR"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Oficina@2026",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
