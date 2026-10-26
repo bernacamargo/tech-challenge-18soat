@@ -30,7 +30,7 @@ public class OrdemDeServicoController {
     public ResponseEntity<OrdemDeServicoResponse> criar(@Valid @RequestBody OrdemDeServicoRequest request) {
         OrdemDeServico os = service.criar(request.documento(), request.nome(), request.placa(),
                 request.marca(), request.modelo(), request.ano(), request.servicoId(), request.pecaId(),
-                request.quantidade());
+                request.quantidade(), request.email());
         return ResponseEntity.created(URI.create("/api/ordens-de-servico/" + os.id()))
                 .body(OrdemDeServicoResponse.de(os));
     }

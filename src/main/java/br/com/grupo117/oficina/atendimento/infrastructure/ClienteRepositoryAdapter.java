@@ -3,6 +3,7 @@ package br.com.grupo117.oficina.atendimento.infrastructure;
 import br.com.grupo117.oficina.atendimento.application.ClienteRepositorio;
 import br.com.grupo117.oficina.atendimento.domain.Cliente;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpj;
+import br.com.grupo117.oficina.atendimento.domain.Email;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -39,6 +40,7 @@ public class ClienteRepositoryAdapter implements ClienteRepositorio {
         ClienteEntity entity = jpa.findById(digitos).orElseGet(ClienteEntity::new);
         entity.setCpfCnpj(digitos);
         entity.setNome(cliente.nome());
+        entity.setEmail(cliente.email().map(e -> e.valor()).orElse(null));
         return paraDominio(jpa.save(entity));
     }
 
@@ -48,6 +50,7 @@ public class ClienteRepositoryAdapter implements ClienteRepositorio {
     }
 
     private Cliente paraDominio(ClienteEntity entity) {
-        return new Cliente(entity.getNome(), CpfCnpj.de(entity.getCpfCnpj()));
+        return new Cliente(entity.getNome(), CpfCnpj.de(entity.getCpfCnpj()),
+                entity.getEmail() == null ? null : new Email(entity.getEmail()));
     }
 }

@@ -21,6 +21,8 @@ services:
   app:
     build: .
     environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
       DB_URL: jdbc:postgresql://postgres:5432/oficina
       DB_USERNAME: oficina
       DB_PASSWORD: oficina
@@ -30,6 +32,18 @@ services:
       postgres:
         condition: service_healthy
     profiles: [full]
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    profiles: [dev, full]
 
 volumes:
   pgdata:

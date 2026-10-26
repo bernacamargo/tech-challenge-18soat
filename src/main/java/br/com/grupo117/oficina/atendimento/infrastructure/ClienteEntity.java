@@ -23,6 +23,12 @@ public class ClienteEntity implements Persistable<String> {
     @Column(name = "nome", length = 150, nullable = false)
     private String nome;
 
+    @Column(name = "email", length = 254)
+    private String email;
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
     @Transient
     private boolean novo = true;
 

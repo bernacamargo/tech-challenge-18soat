@@ -55,6 +55,11 @@ public class OrdemDeServicoService {
         return criar.criar(documento, nome, placa, marca, modelo, ano, servicoId, pecaId, quantidade);
     }
 
+    public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
+                               UUID servicoId, UUID pecaId, Integer quantidade, String email) {
+        return criar.criar(documento, nome, placa, marca, modelo, ano, servicoId, pecaId, quantidade, email);
+    }
+
     @Transactional(readOnly = true)
     public List<OrdemDeServico> listar() { return listar.listar(); }
 

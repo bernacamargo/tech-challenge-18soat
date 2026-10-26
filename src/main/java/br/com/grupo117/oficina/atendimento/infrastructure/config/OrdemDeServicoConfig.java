@@ -16,6 +16,7 @@ import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
 import br.com.grupo117.oficina.atendimento.application.usecase.GerarOrcamento;
 import br.com.grupo117.oficina.atendimento.application.usecase.SubmeterOrdemDeServico;
 import java.time.Clock;
+import br.com.grupo117.oficina.atendimento.application.port.NotificacaoPort;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,12 +58,12 @@ public class OrdemDeServicoConfig {
         return new RegistrarEntrega(ordens);
     }
     @Bean
-    GerarOrcamento gerarOrcamento(OrdemDeServicoRepositorio ordens) {
-        return new GerarOrcamento(ordens);
+    GerarOrcamento gerarOrcamento(OrdemDeServicoRepositorio ordens, NotificacaoPort notificacoes) {
+        return new GerarOrcamento(ordens, notificacoes);
     }
 
     @Bean
-    SubmeterOrdemDeServico submeterOrdemDeServico(OrdemDeServicoRepositorio ordens) {
-        return new SubmeterOrdemDeServico(ordens);
+    SubmeterOrdemDeServico submeterOrdemDeServico(OrdemDeServicoRepositorio ordens, NotificacaoPort notificacoes) {
+        return new SubmeterOrdemDeServico(ordens, notificacoes);
     }
 }
