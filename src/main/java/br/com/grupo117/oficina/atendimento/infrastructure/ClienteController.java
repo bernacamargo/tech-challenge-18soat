@@ -53,7 +53,7 @@ public class ClienteController {
     @PostMapping
     @Operation(summary = "Cadastra um cliente")
     public ResponseEntity<ClienteResponse> criar(@Valid @RequestBody ClienteRequest request) {
-        Cliente cliente = cadastrarCliente.cadastrar(request.nome(), request.cpfCnpj());
+        Cliente cliente = cadastrarCliente.cadastrar(request.nome(), request.cpfCnpj(), request.email());
         URI location = URI.create("/api/clientes/" + cliente.cpfCnpj().digitos());
         return ResponseEntity.created(location).body(ClienteResponse.de(cliente));
     }
@@ -71,9 +71,9 @@ public class ClienteController {
     }
 
     @PutMapping("/{cpfCnpj}")
-    @Operation(summary = "Altera o nome de um cliente")
+    @Operation(summary = "Altera nome e e-mail de um cliente")
     public ClienteResponse alterar(@PathVariable String cpfCnpj, @Valid @RequestBody AlterarClienteRequest request) {
-        return ClienteResponse.de(alterarCliente.alterar(cpfCnpj, request.nome()));
+        return ClienteResponse.de(alterarCliente.alterar(cpfCnpj, request.nome(), request.email()));
     }
 
     @DeleteMapping("/{cpfCnpj}")

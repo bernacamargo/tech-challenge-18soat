@@ -24,7 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * de teste o derrubasse, o contexto Spring em cache seguiria apontando para
  * uma porta que ja nao escuta.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "oficina.notificacoes.habilitadas=false")
 public abstract class AbstractIntegrationTest {
 
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");

@@ -56,7 +56,7 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 ## Instruções para execução
 
 ```bash
-# 1. Subir o PostgreSQL
+# 1. Subir o PostgreSQL e MailPit
 docker compose --profile dev up -d
 
 # 2. Rodar a aplicação (perfil local)
@@ -69,6 +69,14 @@ docker compose --profile dev up -d
 ```
 
 Alternativa totalmente containerizada: `docker compose --profile full up -d --build`.
+
+## E-mail do orçamento
+
+Cadastre `email` em `POST /api/clientes` ou na abertura da OS. A geração do orçamento pela
+conclusão do diagnóstico ou submissão agenda o envio automaticamente após o commit. Leia os
+e-mails de demonstração no MailPit em **http://localhost:8025**. Cadastros antigos sem contato
+continuam funcionando; a mensagem aguarda a inclusão do e-mail. Falhas SMTP são retentadas.
+Veja o [guia de notificações](docs/implementacao/notificacao-orcamento-email.md).
 
 ## Catálogo de demonstração (opcional)
 

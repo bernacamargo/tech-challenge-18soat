@@ -5,6 +5,18 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/oficina}
     username: ${DB_USERNAME:oficina}
     password: ${DB_PASSWORD:oficina}
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp:
+        auth: ${SMTP_AUTH:false}
+        starttls.enable: ${SMTP_STARTTLS:false}
+        connectiontimeout: 3000
+        timeout: 3000
+        writetimeout: 3000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -28,3 +40,9 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+oficina:
+  notificacoes:
+    habilitadas: ${NOTIFICACOES_HABILITADAS:true}
+    remetente: ${SMTP_FROM:no-reply@oficina.local}
+    intervalo-ms: 5000
