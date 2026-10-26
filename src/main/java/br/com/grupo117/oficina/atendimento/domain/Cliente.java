@@ -1,6 +1,7 @@
 package br.com.grupo117.oficina.atendimento.domain;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Cliente da oficina, identificado pelo CPF ou CNPJ. O historico de veiculos e de
@@ -10,18 +11,24 @@ public final class Cliente {
 
     private final String nome;
     private final CpfCnpj cpfCnpj;
+    private final Email email;
 
-    public Cliente(String nome, CpfCnpj cpfCnpj) {
+    public Cliente(String nome, CpfCnpj cpfCnpj) { this(nome, cpfCnpj, null); }
+
+    public Cliente(String nome, CpfCnpj cpfCnpj, Email email) {
         if (nome == null || nome.isBlank()) {
             throw new IllegalArgumentException("Nome do cliente e obrigatorio");
         }
         this.nome = nome.trim();
+        this.email = email;
         this.cpfCnpj = Objects.requireNonNull(cpfCnpj, "CPF/CNPJ e obrigatorio");
     }
 
     public static Cliente cadastrar(String nome, String documento) {
         return new Cliente(nome, CpfCnpj.de(documento));
     }
+
+    public Optional<Email> email() { return Optional.ofNullable(email); }
 
     public String nome() {
         return nome;
