@@ -23,6 +23,18 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Issuer publico (o "iss" que o Keycloak emite), comparado por igualdade exata; sem barra final
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8081/realms/oficina}
+          # JWKS: no perfil full o compose aponta para o endereco interno (T16); local usa o default
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8081/realms/oficina/protocol/openid-connect/certs}
+          # FIXO, sem env: lista vazia desliga a validacao de aud em silencio
+          audiences: oficina-api
+          # FIXO: so RS256 (nao usar jws-algorithm, singular)
+          jws-algorithms: RS256
 
 server:
   port: 8080

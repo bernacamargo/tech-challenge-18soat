@@ -28,7 +28,8 @@ import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 
 public final class JwtTestSupport {
 
-    public static final String SECRET = "chave-de-teste-da-oficina-grupo117";
+    // Unico HMAC do repositorio: so para tokenHs256 provar que o decoder recusa HS256.
+    private static final String SEGREDO_HS256 = "chave-de-teste-da-oficina-grupo117";
 
     // Constantes literais: nunca lidas de propriedades (um erro no application.yml tem de quebrar a suite).
     public static final String ISSUER = "http://localhost:8081/realms/oficina";
@@ -51,19 +52,8 @@ public final class JwtTestSupport {
     private JwtTestSupport() {
     }
 
-    public static String token(String... papeis) {
-        SecretKey chave = new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        NimbusJwtEncoder encoder = new NimbusJwtEncoder(new ImmutableSecret<>(chave));
-        Instant agora = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("http://localhost:8081/realms/oficina")
-                .subject("usuario-teste")
-                .issuedAt(agora)
-                .expiresAt(agora.plusSeconds(300))
-                .claim("realm_access", Map.of("roles", List.of(papeis)))
-                .build();
-        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-        return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+    public static String token(String... perfis) {
+        return tokenRs256(perfis);
     }
 
     public static String jwksJson() {
@@ -154,7 +144,7 @@ public final class JwtTestSupport {
     }
 
     public static String tokenHs256(String... perfis) {
-        SecretKey chave = new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        SecretKey chave = new SecretKeySpec(SEGREDO_HS256.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         NimbusJwtEncoder encoder = new NimbusJwtEncoder(new ImmutableSecret<>(chave));
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return encoder.encode(JwtEncoderParameters.from(header, claimsPadrao(Instant.now(), perfis).build()))
