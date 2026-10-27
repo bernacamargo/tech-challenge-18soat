@@ -39,7 +39,8 @@ services:
       postgres-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q UP"]
+      # health na 8080; com APP_PROFILES=observability o management vai para a 9091 (ADR 0016)
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health 2>/dev/null | grep -q UP || wget -qO- http://127.0.0.1:9091/actuator/health | grep -q UP"]
       interval: 5s
       timeout: 3s
       retries: 30
