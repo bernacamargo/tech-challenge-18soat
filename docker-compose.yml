@@ -24,7 +24,7 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SPRING_PROFILES_ACTIVE: ${APP_PROFILES:-}
-      MANAGEMENT_SERVER_ADDRESS: 0.0.0.0
+      OBSERVABILITY_MANAGEMENT_ADDRESS: 0.0.0.0
       DB_URL: jdbc:postgresql://postgres:5432/oficina
       DB_USERNAME: oficina
       DB_PASSWORD: oficina

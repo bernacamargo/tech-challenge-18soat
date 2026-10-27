@@ -30,7 +30,7 @@ com o perfil adicional. Preserve as variáveis de autenticação utilizadas em s
 ```bash
 PROMETHEUS_CONFIG_FILE=./observability/prometheus/prometheus-local.yml \
   docker compose --profile dev --profile observability up -d
-MANAGEMENT_SERVER_ADDRESS=0.0.0.0 ./mvnw spring-boot:run \
+OBSERVABILITY_MANAGEMENT_ADDRESS=0.0.0.0 ./mvnw spring-boot:run \
   -Dspring-boot.run.profiles=local,observability
 ```
 
@@ -39,6 +39,12 @@ A porta 9091 aceita conexões da bridge Docker e demais interfaces: use em ambie
 confiável. No modo completo Docker, 9091 fica interna e não é publicada. A porta normal 8080
 não expõe o endpoint Prometheus; a autorização das APIs continua igual.
 Para voltar ao modo completo, remova `PROMETHEUS_CONFIG_FILE` do ambiente e use o primeiro comando.
+
+O endereço da porta 9091 vem de `OBSERVABILITY_MANAGEMENT_ADDRESS`, lida só pelo perfil
+`observability` (default `127.0.0.1`). Não use `MANAGEMENT_SERVER_ADDRESS` no Compose: sem o
+perfil não existe porta de management separada, e o Spring recusa a subida com
+`Management-specific server address cannot be configured as the management server is not
+listening on a separate port`.
 
 ## Painéis
 
