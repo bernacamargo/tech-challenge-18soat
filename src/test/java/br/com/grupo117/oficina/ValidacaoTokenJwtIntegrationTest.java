@@ -102,6 +102,44 @@ class ValidacaoTokenJwtIntegrationTest extends AbstractIntegrationTest {
         assertThat(JwksTestServer.requisicoes()).isGreaterThan(antes);
     }
 
+    @Test
+    void tokenSemExpiracaoDa401() {
+        ResponseEntity<String> resposta = getClientes(JwtTestSupport.tokenSemExp());
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(resposta.getBody()).isNullOrEmpty();
+    }
+
+    @Test
+    void idTokenDoKeycloakDa401() {
+        ResponseEntity<String> resposta = getClientes(JwtTestSupport.tokenDeId());
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(resposta.getBody()).isNullOrEmpty();
+    }
+
+    @Test
+    void tokenSemTypDa401() {
+        ResponseEntity<String> resposta =
+                getClientes(JwtTestSupport.tokenRs256(b -> b.claims(c -> c.remove("typ")), "ATENDENTE"));
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void typComCaixaDiferenteDa401() {
+        ResponseEntity<String> resposta = getClientes(JwtTestSupport.tokenRs256(b -> b.claim("typ", "bearer"), "ATENDENTE"));
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void tokenDeAcessoComTypBearerEExpDa200() {
+        ResponseEntity<String> resposta = getClientes(JwtTestSupport.tokenRs256("ATENDENTE"));
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
     private ResponseEntity<String> getClientes(String tokenOuNull) {
         HttpHeaders headers = new HttpHeaders();
         if (tokenOuNull != null) {
