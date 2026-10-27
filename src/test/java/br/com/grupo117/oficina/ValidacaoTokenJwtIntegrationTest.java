@@ -140,6 +140,30 @@ class ValidacaoTokenJwtIntegrationTest extends AbstractIntegrationTest {
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
+    static Stream<Arguments> tokensInvalidosSemDetalhe() {
+        return Stream.of(
+                caso("expirado", JwtTestSupport::tokenExpirado),
+                caso("iss-interno-compose", () -> JwtTestSupport.tokenComIssuer("http://keycloak:8080/realms/oficina")),
+                caso("aud-account", () -> JwtTestSupport.tokenComAudience("account")),
+                caso("outra-chave-mesmo-kid", JwtTestSupport::tokenAssinadoComOutraChave),
+                caso("alg-none", JwtTestSupport::tokenAlgNone),
+                caso("hs256", () -> JwtTestSupport.tokenHs256("ATENDENTE")),
+                caso("malformado", () -> "abc"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("tokensInvalidosSemDetalhe")
+    void respostaDe401NaoDetalhaOMotivo(String caso, Supplier<String> token) {
+        ResponseEntity<String> resposta = getClientes(token.get());
+
+        String desafio = resposta.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE);
+        assertThat(resposta.getStatusCode()).as(caso).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(desafio).as(caso).isEqualTo("Bearer error=\"invalid_token\", error_description=\"Token invalido\", "
+                + "error_uri=\"https://tools.ietf.org/html/rfc6750#section-3.1\"");
+        assertThat(desafio).as(caso).doesNotContainPattern("\\d{4}-\\d{2}-\\d{2}");
+        assertThat(resposta.getBody()).as(caso).isNullOrEmpty();
+    }
+
     private ResponseEntity<String> getClientes(String tokenOuNull) {
         HttpHeaders headers = new HttpHeaders();
         if (tokenOuNull != null) {
