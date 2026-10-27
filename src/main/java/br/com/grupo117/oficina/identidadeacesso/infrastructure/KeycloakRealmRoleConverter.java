@@ -1,8 +1,6 @@
 package br.com.grupo117.oficina.identidadeacesso.infrastructure;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -15,18 +13,8 @@ public final class KeycloakRealmRoleConverter implements Converter<Jwt, Collecti
 
     @Override
     public Collection<GrantedAuthority> convert(Jwt jwt) {
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        if (realmAccess == null) {
-            return List.of();
-        }
-        Object papeis = realmAccess.get("roles");
-        if (!(papeis instanceof Collection<?> colecao)) {
-            return List.of();
-        }
-        return colecao.stream()
-                .filter(String.class::isInstance)
-                .map(String.class::cast)
-                .map(papel -> new SimpleGrantedAuthority("ROLE_" + papel))
+        return KeycloakRealmRoles.extrair(jwt).stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .map(GrantedAuthority.class::cast)
                 .toList();
     }
