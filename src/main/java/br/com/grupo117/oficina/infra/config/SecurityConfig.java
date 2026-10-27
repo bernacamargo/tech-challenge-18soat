@@ -4,6 +4,7 @@ import br.com.grupo117.oficina.identidadeacesso.infrastructure.KeycloakRealmRole
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,10 +15,14 @@ import org.springframework.security.web.SecurityFilterChain;
  * Seguranca da API: stateless, CSRF off (API REST). Health, Swagger e /error sao publicos.
  * /error precisa ser anonimo para uma falha na aprovacao publica continuar respondendo 500.
  * Consulta, aprovacao e rejeicao da OS pelo UUID sao publicas nesta mesma cadeia (ADR 0015).
- * As rotas administrativas exigem JWT do Keycloak (ADR 0006), com papeis do realm.
+ * As rotas administrativas exigem JWT do Keycloak (ADR 0006) com um perfil da oficina:
+ * clientes e veiculos por regra de URL (nega antes da validacao do corpo); demais operacoes
+ * por @PreAuthorize. Qualquer outra rota exige ao menos um perfil da oficina (piso).
+ * Esta e a unica declaracao de @EnableMethodSecurity da aplicacao.
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -36,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/rejeicao").permitAll()
                         .requestMatchers("/api/clientes", "/api/clientes/**", "/api/veiculos", "/api/veiculos/**")
                         .hasAnyRole("ATENDENTE", "ADMINISTRADOR")
-                        .anyRequest().authenticated())
+                        .anyRequest().hasAnyRole("ATENDENTE", "MECANICO", "ADMINISTRADOR"))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .build();
     }

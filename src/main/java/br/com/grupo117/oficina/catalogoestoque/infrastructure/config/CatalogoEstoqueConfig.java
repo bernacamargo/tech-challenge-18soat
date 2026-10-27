@@ -18,10 +18,8 @@ import br.com.grupo117.oficina.catalogoestoque.application.usecase.RemoverPeca;
 import br.com.grupo117.oficina.catalogoestoque.application.usecase.RemoverServico;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
-@EnableMethodSecurity
 public class CatalogoEstoqueConfig {
     @Bean
     CadastrarPeca cadastrarPeca(PecaRepositorio pecas) {
