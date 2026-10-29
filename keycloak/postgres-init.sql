@@ -1,6 +1,6 @@
 -- Roles e schemas do banco unico oficina (idempotente; roda a cada subida, antes do Keycloak e da app).
 -- oficina_app: dona do schema public (tabelas da oficina e Flyway). keycloak: dona do schema keycloak.
--- Nenhuma senha neste arquivo: vem de APP_DB_PASSWORD e KEYCLOAK_DB_PASSWORD (ADR b).
+-- Nenhuma senha neste arquivo: vem de APP_DB_PASSWORD e KEYCLOAK_DB_PASSWORD (ADR 0020).
 \set ON_ERROR_STOP on
 \getenv app_password APP_DB_PASSWORD
 \getenv kc_password KEYCLOAK_DB_PASSWORD

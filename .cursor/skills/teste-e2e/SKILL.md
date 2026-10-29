@@ -48,7 +48,7 @@ Repita para `atendente` e `mecanico`. No Swagger (`http://localhost:8080/swagger
 
 ## Como evidenciar
 
-Cada cenário no Swagger ou no MailPit (`http://localhost:8025`). No markdown: papel, rota, esperado, obtido e o print em `imagens/`.
+Cada cenário no Swagger ou no MailPit (`http://localhost:8025`). No markdown: perfil, rota, esperado, obtido e o print em `imagens/`.
 
 Se expandir uma operação POST no Swagger travar o navegador, faça a chamada na API em execução (`localhost:8080`) com o JWT do Keycloak e fotografe status e corpo. Não troque o Keycloak por segredo HMAC. Leituras que o Swagger conseguir executar continuam nele. O e-mail continua sendo lido na UI do MailPit. Use CPF e placa válidos e distintos entre cenários que não podem compartilhar cadastro. IDs do catálogo demo estão em `docs/demo.md`.
 
@@ -59,7 +59,7 @@ Se expandir uma operação POST no Swagger travar o navegador, faça a chamada n
 5. **Fluxo feliz — troca de óleo.** OS com e-mail. Serviço `...0101` (mecânico) e 3 unidades do óleo `...0201`. Diagnóstico e conclusão. Status `AGUARDANDO_APROVACAO` e total **R$ 156,25** quando o preço do catálogo demo estiver intacto. MailPit mostra a mensagem. A reserva reduz o livre e a aprovação pública baixa o físico. Consulta pública sem JWT só com `status` e `finalizadaEm`. Mecânico conclui; atendente entrega. Consulta pública `ENTREGUE` com `finalizadaEm`.
 6. **Estoque insuficiente.** Antes do orçamento, correia `...0205` quantidade 1. Esperado **409**, item fora da OS.
 7. **Rejeição.** Segunda OS com peça reservada, orçamento gerado, `POST /api/acompanhamento/ordens-de-servico/{id}/rejeicao` com motivo. Reserva devolvida e `rejeicaoOrcamento` no detalhe administrativo.
-8. **Papéis.** Mecânico e atendente leem serviço e peça (**200**) e não criam, alteram nem excluem (**403**). Atendente não diagnostica nem conclui (**403**). Mecânico não entrega (**403**). Conclusão com a OS ainda `RECEBIDA`: **409**. Entrada de estoque só com administrador: uma quantidade válida soma `quantidadeDisponivel` e `quantidadeLivre`; mecânico recebe **403**.
+8. **Perfis.** Mecânico e atendente leem serviço e peça (**200**) e não criam, alteram nem excluem (**403**). Atendente não diagnostica nem conclui (**403**). Mecânico não entrega (**403**). Conclusão com a OS ainda `RECEBIDA`: **409**. Entrada de estoque só com administrador: uma quantidade válida soma `quantidadeDisponivel` e `quantidadeLivre`; mecânico recebe **403**.
 9. **Vínculo na exclusão.** Com OS e reserva ativas, `DELETE` de cliente, veículo e peça **409** com a mensagem `Cadastro possui vinculos com outros registros e nao pode ser removido ou alterado`. `GET` seguinte **200** e a reserva permanece. Sem histórico: excluir veículo **204**, depois cliente **204**; peça sem reserva **204**.
 10. **Limites.** Nome de 151 caracteres na abertura da OS: **400** e nenhum cliente, veículo ou OS novo. Preço `25.251` na peça: **400** no cadastro e na alteração, cadastro anterior intacto. `POST /api/pecas/{id}/entradas` com `2147483647` sobre saldo existente: **400** e mensagem `Entrada excede o limite de quantidade em estoque`; saldo e reserva iguais aos de antes.
 11. **E-mail do orçamento.** No fluxo feliz a mensagem chega ao MailPit antes da decisão. Numa OS sem e-mail, espere a fila marcar espera de contato (próxima tentativa em 1 minuto). Aprove e só então grave o e-mail. Espere a tentativa seguinte. O MailPit não recebe essa OS. Confirme no SQL `cancelada_em` preenchido e `enviada_em` nulo, e inclua a saída junto com o print da caixa.

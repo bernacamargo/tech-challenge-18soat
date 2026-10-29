@@ -62,7 +62,7 @@ Authorization: Bearer <JWT de ATENDENTE, MECANICO ou ADMINISTRADOR>
 ```
 
 Na primeira execução, o óleo ficará com físico 20, reservado 3 e livre 17. Inicie e conclua o diagnóstico para gerar o orçamento: total de **R$ 156,25**. Registre aprovação: execução iniciada e saldo físico
-17, reservado 0, livre 17. Conclua os serviços e registre a entrega. Para conferir papéis,
+17, reservado 0, livre 17. Conclua os serviços e registre a entrega. Para conferir perfis,
 rotas e respostas, veja a [documentação da API](api/ordens-de-servico.md).
 
 Antes de gerar o orçamento, tente incluir a correia (ID terminado em `205`) com quantidade 1:

@@ -90,7 +90,7 @@ segregados. É a aplicação da [ADR-0002](0002-postgres-for-everything.md) **se
   (cria se não existe, reafirma atributos, passa a posse das tabelas antigas do `public` para
   `oficina_app`) e lê as senhas das variáveis `APP_DB_PASSWORD` e `KEYCLOAK_DB_PASSWORD`, com
   default local documentado no [README](../../README.md); nenhuma senha fica no script.
-- **Migrations**: as migrations Flyway `V1`–`V8` da oficina não mudam e passam a rodar como
+- **Migrations**: as migrations Flyway da oficina (`V1` a `V10` na data desta ADR, incluindo as que vieram da `main`) não mudam e passam a rodar como
   `oficina_app`. As migrations do Keycloak (Liquibase) continuam sendo dele; nada é copiado
   para o Flyway.
 - **Compose**: o serviço `keycloak` recebe `KC_DB=postgres`,

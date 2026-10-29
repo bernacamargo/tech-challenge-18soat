@@ -38,7 +38,7 @@ br.com.grupo117.oficina
 Cada contexto tem `domain` / `application` / `infrastructure`:
 
 - **domain**: agregados, entidades, value objects (records), eventos de domínio, regras de negócio. **Sem dependência de framework (Spring/JPA)**.
-- **application**: casos de uso e ports de saída (interfaces). Orquestra o domínio. Sem controllers/repositorios aqui.
+- **application**: casos de uso e ports de saída (interfaces). Orquestra o domínio. Sem controllers/repositorios aqui. Exceção consciente: em `identidadeacesso`, o port `ValidadorDeCredencial` fica no `domain`, como a issue #4 pediu (ADR 0019).
 - **infrastructure**: controllers REST, adaptadores JPA (`*Repository`), implementações de ports. **Depende para dentro; domain nunca depende de infrastructure**.
 
 Convenções de nome:

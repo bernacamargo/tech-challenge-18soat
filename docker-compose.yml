@@ -62,7 +62,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # one-shot idempotente: roles oficina_app/keycloak e schemas do banco unico (ADR b); roda tambem em pgdata existente
+    # one-shot idempotente: roles oficina_app/keycloak e schemas do banco unico (ADR 0020); roda tambem em pgdata existente
     profiles: [dev, full]
 
   keycloak:
