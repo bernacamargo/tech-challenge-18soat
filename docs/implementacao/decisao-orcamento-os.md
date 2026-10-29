@@ -48,5 +48,5 @@ A consulta pública permanece limitada ao andamento. O detalhe/listagem administ
 `RejeicaoOrcamentoResponse` representa momento e motivo sem expor o value object diretamente.
 `OrdemDeServicoResponse` inclui esse objeto e o início, documentados no Swagger. A inclusão é
 compartilhada por listagem, detalhe e respostas dos comandos administrativos existentes.
-Testes de integração verificam os três papéis administrativos e impedem vazamento dos novos
+Testes de integração verificam os três perfis administrativos e impedem vazamento dos novos
 campos na consulta pública, cuja resposta e esquema continuam com apenas dois campos.

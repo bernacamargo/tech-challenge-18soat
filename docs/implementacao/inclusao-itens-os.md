@@ -35,7 +35,7 @@ vínculo e saldos. Repetição do port com o mesmo item é idempotente; parâmet
 são recusados. Uma nova requisição HTTP cria outro item e não é idempotente.
 
 `ItensOrcamentoOSController` expõe POST `/api/ordens-de-servico/{id}/servicos` e `/pecas`.
-Requisições e papéis estão em [API de OS](../api/ordens-de-servico.md). Os itens e orçamento
+Requisições e perfis estão em [API de OS](../api/ordens-de-servico.md). Os itens e orçamento
 continuam persistidos pela V5 e expostos no detalhe administrativo (ADR 0011).
 
 ## Verificação
