@@ -5,41 +5,60 @@ Quadro da imagem `acompanhamento-os.png`.
 Legenda: azul é comando, laranja é evento, roxo é política e verde é modelo de leitura. O ator fica no post-it amarelo do comando.
 
 ```mermaid
-flowchart LR
+flowchart TB
   classDef comando fill:#7dd3fc,stroke:#0369a1,color:#0c4a6e
   classDef evento fill:#fcd34d,stroke:#b45309,color:#78350f
   classDef politica fill:#d8b4fe,stroke:#6b21a8,color:#3b0764
   classDef leitura fill:#86efac,stroke:#166534,color:#14532d
 
-  osAberta["OS Aberta<br/>status: Recebida"]:::evento
-  iniciar["Iniciar diagnóstico<br/>Mecânico"]:::comando
-  diagIniciado["Diagnóstico iniciado<br/>status: Em Diagnóstico"]:::evento
-  concluirDiag["Concluir diagnóstico<br/>Mecânico"]:::comando
-  diagConcluido["Diagnóstico concluído"]:::evento
-  gerar["Ao concluir diagnóstico com itens,<br/>gerar orçamento e mudar status"]:::politica
-  aguardando["OS aguardando aprovação<br/>status: Aguardando Aprovação"]:::evento
-  aprova["Aprova OS<br/>Cliente"]:::comando
-  rejeita["Rejeita OS<br/>Cliente"]:::comando
-  aprovado["Orçamento aprovado"]:::evento
-  libera["Aprovação libera execução<br/>automaticamente"]:::politica
-  emExecucao["Execução iniciada<br/>status: Em execução"]:::evento
-  conclui["Conclui execução<br/>Mecânico"]:::comando
-  finalizada["Execução concluída<br/>status: Finalizada"]:::evento
-  entrega["Registrar entrega<br/>Atendente"]:::comando
-  entregue["OS Entregue<br/>status: Entregue"]:::evento
-  consultar["Consultar status da OS (API)<br/>Cliente"]:::comando
-  statusAtual["Status atual da OS"]:::leitura
+  subgraph etapaAbertura["1. Abertura"]
+    direction LR
+    osAberta["OS Aberta<br/>status: Recebida"]:::evento
+  end
 
-  osAberta --> iniciar --> diagIniciado --> concluirDiag --> diagConcluido --> gerar --> aguardando
-  aguardando --> aprova --> aprovado --> libera --> emExecucao
-  aguardando --> rejeita
-  emExecucao --> conclui --> finalizada --> entrega --> entregue
+  subgraph etapaDiagnostico["2. Diagnóstico pelo mecânico"]
+    direction LR
+    iniciar["Iniciar diagnóstico<br/>Mecânico"]:::comando
+    diagIniciado["Diagnóstico iniciado<br/>status: Em Diagnóstico"]:::evento
+    concluirDiag["Concluir diagnóstico<br/>Mecânico"]:::comando
+    diagConcluido["Diagnóstico concluído"]:::evento
+    gerar["Ao concluir diagnóstico com itens,<br/>gerar orçamento e mudar status"]:::politica
+    iniciar --> diagIniciado --> concluirDiag --> diagConcluido --> gerar
+  end
 
-  osAberta --> consultar
-  emExecucao --> consultar
-  finalizada --> consultar
-  entregue --> consultar
-  consultar --> statusAtual
+  subgraph etapaAprovacao["3. Aprovação do orçamento pelo cliente"]
+    direction LR
+    aguardando["OS aguardando aprovação<br/>status: Aguardando Aprovação"]:::evento
+    aprova["Aprova OS<br/>Cliente"]:::comando
+    rejeita["Rejeita OS<br/>Cliente"]:::comando
+    aprovado["Orçamento aprovado"]:::evento
+    libera["Aprovação libera execução<br/>automaticamente"]:::politica
+    aguardando --> aprova --> aprovado --> libera
+    aguardando --> rejeita
+  end
+
+  subgraph etapaExecucao["4. Execução e entrega"]
+    direction LR
+    emExecucao["Execução iniciada<br/>status: Em execução"]:::evento
+    conclui["Conclui execução<br/>Mecânico"]:::comando
+    finalizada["Execução concluída<br/>status: Finalizada"]:::evento
+    entrega["Registrar entrega<br/>Atendente"]:::comando
+    entregue["OS Entregue<br/>status: Entregue"]:::evento
+    emExecucao --> conclui --> finalizada --> entrega --> entregue
+  end
+
+  subgraph etapaConsulta["Consulta pelo cliente"]
+    direction LR
+    consultar["Consultar status da OS (API)<br/>Cliente"]:::comando
+    statusAtual["Status atual da OS"]:::leitura
+    consultar --> statusAtual
+  end
+
+  etapaAbertura --> etapaDiagnostico
+  etapaDiagnostico --> etapaAprovacao
+  etapaAprovacao --> etapaExecucao
+  etapaAbertura --> etapaConsulta
+  etapaExecucao --> etapaConsulta
 ```
 
 ## Ciclo de status
