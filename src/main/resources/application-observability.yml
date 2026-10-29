@@ -2,7 +2,7 @@
 management:
   server:
     port: 9091
-    address: 127.0.0.1
+    address: ${OBSERVABILITY_MANAGEMENT_ADDRESS:127.0.0.1}
   endpoints:
     web:
       exposure:
