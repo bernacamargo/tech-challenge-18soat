@@ -58,6 +58,10 @@ docker compose --profile full up -d --build               # app + PostgreSQL
 ./mvnw dependency-check:check                             # relatório CVE local
 ```
 
+## Teste ponta a ponta
+
+Para repetir o teste do sistema no ar (atendimento, catálogo e estoque, identidade e notificação, com Swagger, MailPit, Keycloak e relatório versionado por data/hora), siga a skill [`.cursor/skills/teste-e2e/SKILL.md`](.cursor/skills/teste-e2e/SKILL.md). As execuções ficam em `docs/e2e/`.
+
 ## Qualidade — definição de pronto
 
 - Testes de unidade (domain/application, sem Spring) **e** de integração (fluxos, extends `AbstractIntegrationTest`).

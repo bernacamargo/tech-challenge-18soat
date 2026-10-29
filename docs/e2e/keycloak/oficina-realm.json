@@ -1,0 +1,78 @@
+{
+  "realm": "oficina",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "ATENDENTE", "description": "Atendimento e criação de OS" },
+      { "name": "MECANICO", "description": "Diagnóstico e execução" },
+      { "name": "ADMINISTRADOR", "description": "Cadastros administrativos" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "oficina-api",
+      "name": "API da oficina",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:8080/*"],
+      "webOrigins": ["http://localhost:8080"],
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "atendente",
+      "enabled": true,
+      "email": "atendente@oficina.local",
+      "emailVerified": true,
+      "firstName": "Atendente",
+      "lastName": "Demo",
+      "credentials": [{ "type": "password", "value": "demo123", "temporary": false }],
+      "realmRoles": ["ATENDENTE"]
+    },
+    {
+      "username": "mecanico",
+      "enabled": true,
+      "email": "mecanico@oficina.local",
+      "emailVerified": true,
+      "firstName": "Mecanico",
+      "lastName": "Demo",
+      "credentials": [{ "type": "password", "value": "demo123", "temporary": false }],
+      "realmRoles": ["MECANICO"]
+    },
+    {
+      "username": "administrador",
+      "enabled": true,
+      "email": "administrador@oficina.local",
+      "emailVerified": true,
+      "firstName": "Administrador",
+      "lastName": "Demo",
+      "credentials": [{ "type": "password", "value": "demo123", "temporary": false }],
+      "realmRoles": ["ADMINISTRADOR"]
+    }
+  ]
+}
