@@ -42,6 +42,9 @@ O check obrigatório para mergear em `main` é o workflow `.github/workflows/ci.
 - **JaCoCo**: mínimo de 80% de linhas nos pacotes `domain` e `application`. Abaixo disso o `verify` falha ([ADR 0003](docs/adr/0003-gate-cobertura-80-ci.md)).
 - **SonarCloud**: com o secret `SONAR_TOKEN` configurado, o workflow roda `./mvnw -B sonar:sonar`. Sem o token, o job registra que a análise foi pulada e segue. O quality gate do PR aparece no check do SonarCloud ([ADR 0005](docs/adr/0005-sonarcloud-dependency-check.md)).
 
+Release (imagem no GHCR, sem deploy): corte manual de tag `vMAJOR.MINOR.PATCH` em `main` —
+ver [README § Release](README.md#release-imagem-no-ghcr) e [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md).
+
 ## Build e testes locais
 
 Pré-requisitos:
