@@ -45,13 +45,14 @@ jobs:
       - name: Validar check ci do commit
         env:
           GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           SHA="${GITHUB_SHA}"
           # Em tag push o check ja rodou no merge em main; so consultamos o status.
           # Aceita se existir ao menos um check-run "ci" com conclusion=success.
           HAS_SUCCESS=$(gh api \
-            "repos/${{ github.repository }}/commits/${SHA}/check-runs" \
+            "repos/${REPOSITORY}/commits/${SHA}/check-runs" \
             --paginate \
             --jq '[.check_runs[] | select(.name == "ci" and .conclusion == "success")] | length')
           if [ "${HAS_SUCCESS:-0}" = "0" ]; then
