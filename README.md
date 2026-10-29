@@ -50,25 +50,102 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 ## Pré-requisitos
 
 - JDK 21 (Temurin)
-- Docker + Docker Compose (para o banco e para testes de integração via Testcontainers)
+- Docker + Docker Compose (PostgreSQL, MailPit, Keycloak e Testcontainers)
 - Não é necessário Maven instalado (o wrapper `./mvnw` baixa o necessário)
 
-## Instruções para execução
+## Passo a passo para executar
+
+A API sobe na máquina, com o perfil `local`. O banco e o MailPit vêm do Compose. O Keycloak sobe num container à parte, na porta `8081`. O token emitido traz o issuer `http://localhost:8081/realms/oficina`, e a API valida o JWT por esse endereço.
+
+### 1. PostgreSQL e MailPit
+
+Na raiz do repositório:
 
 ```bash
-# 1. Subir o PostgreSQL e MailPit
 docker compose --profile dev up -d
-
-# 2. Rodar a aplicação (perfil local)
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-
-# Acesse:
-#   API:         http://localhost:8080
-#   Health:      http://localhost:8080/actuator/health
-#   Swagger UI:  http://localhost:8080/swagger-ui.html
 ```
 
-Alternativa totalmente containerizada: `docker compose --profile full up -d --build`.
+O perfil `dev` publica o Postgres em `localhost:5432` (banco, usuário e senha `oficina`) e o MailPit em `localhost:8025` (interface) e `localhost:1025` (SMTP). Espere o Postgres ficar saudável:
+
+```bash
+docker compose ps
+```
+
+### 2. Keycloak
+
+O realm de demonstração está em `docs/e2e/keycloak/oficina-realm.json` (realm `oficina`, client público `oficina-api`, papéis `ATENDENTE`, `MECANICO` e `ADMINISTRADOR`).
+
+```bash
+docker run -d --name keycloak \
+  -p 8081:8080 \
+  -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+  -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+  -e KC_HOSTNAME=http://localhost:8081 \
+  -e KC_HOSTNAME_STRICT=false \
+  -e KC_HTTP_ENABLED=true \
+  -e KC_HEALTH_ENABLED=true \
+  -v "$PWD/docs/e2e/keycloak:/opt/keycloak/data/import:ro" \
+  quay.io/keycloak/keycloak:26.4.0 \
+  start-dev --import-realm --http-port=8080
+```
+
+A primeira subida leva um pouco. Confira o issuer antes de seguir:
+
+```bash
+curl -s http://localhost:8081/realms/oficina/.well-known/openid-configuration
+```
+
+O campo `issuer` precisa ser `http://localhost:8081/realms/oficina`. O console fica em `http://localhost:8081` (usuário `admin`, senha `admin`, só para desenvolvimento).
+
+### 3. API
+
+Em outro terminal, na raiz:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+O Flyway aplica as migrations ao iniciar. Quando o log mostrar a aplicação no ar, confira:
+
+```bash
+curl -s http://localhost:8080/api/health
+```
+
+A resposta esperada é `status` `UP` e `app` `oficina`. O Actuator responde em `http://localhost:8080/actuator/health`.
+
+| Serviço | Endereço |
+|---|---|
+| API | http://localhost:8080 |
+| Swagger | http://localhost:8080/swagger-ui.html |
+| Health | http://localhost:8080/api/health |
+| MailPit | http://localhost:8025 |
+| Keycloak | http://localhost:8081 |
+
+### 4. Catálogo de demonstração (opcional)
+
+Com a API já no ar e o Flyway concluído, em outro terminal:
+
+```bash
+./scripts/popular-catalogo-demo.sh
+```
+
+Os detalhes da carga estão na seção [Catálogo de demonstração](#catálogo-de-demonstração-opcional).
+
+### 5. Token e Swagger
+
+Usuários locais (senha `demo123`): `atendente`, `mecanico`, `administrador`.
+
+```bash
+curl -s -X POST "http://localhost:8081/realms/oficina/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password&client_id=oficina-api&username=administrador&password=demo123"
+```
+
+Troque `username` para obter o token dos outros papéis. No Swagger, em **Authorize**, informe `Bearer` seguido do `access_token`.
+
+O e-mail do orçamento aparece no MailPit depois que a OS chega em `AGUARDANDO_APROVACAO` com contato cadastrado. O guia está em [docs/implementacao/notificacao-orcamento-email.md](docs/implementacao/notificacao-orcamento-email.md).
+
+Para entrar no Swagger com os usuários de demonstração, siga os passos 1 a 3. O comando `docker compose --profile full up -d --build` publica a API junto com Postgres e MailPit; o login deste passo a passo continua na API executada na máquina, com o issuer em `localhost:8081`.
 
 ## E-mail do orçamento
 
@@ -138,44 +215,19 @@ Com a aplicação no ar: **http://localhost:8080/swagger-ui.html** (OpenAPI em `
 - JSONB disponível caso haja necessidade de dados semiestruturados, sem introduzir um segundo banco.
 - Ecossistema maduro: JPA/Hibernate, Flyway e Testcontainers com suporte de primeira classe.
 
-## Usuários e credenciais de demonstração / procedimento de autenticação
+## Usuários e credenciais de demonstração
 
-As APIs administrativas usam autenticação **JWT via Keycloak** self-hosted (sobem junto no
-docker-compose, porta `8081`), com o realm **`oficina`** importado automaticamente (config-as-code)
-e os papéis `ATENDENTE`, `MECANICO` e `ADMINISTRADOR` (ADR-0006).
+As APIs administrativas exigem o JWT do Keycloak (ADR-0006). O passo a passo acima sobe o realm `oficina` e o client público `oficina-api`. A API valida o token pelo JWKS; ela não emite nem guarda senha.
 
-**Usuários de demonstração** (somente ambiente local — nunca usar em produção):
+**Usuários de demonstração** (somente ambiente local):
 
 | Usuário | Senha | Papel |
 |---|---|---|
-| `atendente` | `demo123` | `ATENDENTE` — atendimento e criação de OS |
-| `mecanico` | `demo123` | `MECANICO` — diagnóstico e execução |
-| `administrador` | `demo123` | `ADMINISTRADOR` — CRUD de clientes, veículos, serviços, peças e estoque |
+| `atendente` | `demo123` | `ATENDENTE` — atendimento, clientes, veículos e abertura de OS |
+| `mecanico` | `demo123` | `MECANICO` — diagnóstico, execução e leitura do catálogo |
+| `administrador` | `demo123` | `ADMINISTRADOR` — cadastro de serviços, peças e estoque, além das demais rotas |
 
-**Procedimento para obter o token** (client público `oficina-api`, realm `oficina`):
-
-```bash
-# 1. Subir o ambiente (aplicação + postgres + keycloak)
-docker compose --profile full up -d
-
-# 2. Obter o access token (password grant, habilitado apenas para demonstração)
-curl -X POST "http://localhost:8081/realms/oficina/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=oficina-api&scope=openid" \
-  -d "username=administrador&password=demo123"
-
-# 3. Chamar uma API administrativa com o token
-curl http://localhost:8080/api/admin/... \
-  -H "Authorization: Bearer <access_token>"
-```
-
-O console administrativo do Keycloak fica em `http://localhost:8081` (login `admin`/`admin`
-definido no `docker-compose.yml`, apenas para desenvolvimento). O token é validado pela API via
-JWKS do Keycloak — a aplicação não emite nem armazena credenciais.
-
-> ℹ️ Este fluxo entra em funcionamento com a fatia vertical de `identidadeacesso`
-> ([ADR-0006](docs/adr/0006-keycloak-autenticacao-autorizacao.md)); até lá as APIs administrativas
-> respondem 401 para qualquer credencial.
+O comando do token está no passo 5. Sem `Authorization`, as rotas administrativas respondem 401. Consulta, aprovação e rejeição públicas da OS ficam em `/api/acompanhamento/ordens-de-servico/{id}` e não usam JWT.
 
 ## Estrutura dos principais diretórios
 
