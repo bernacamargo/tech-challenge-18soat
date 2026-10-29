@@ -62,14 +62,14 @@ public class ServicoController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
     @Operation(summary = "Lista os servicos")
     public List<ServicoResponse> listar() {
         return listarServicos.listar().stream().map(ServicoResponse::de).toList();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
     @Operation(summary = "Detalha um servico pelo id")
     public ServicoResponse detalhar(@PathVariable UUID id) {
         return ServicoResponse.de(detalharServico.detalhar(id));

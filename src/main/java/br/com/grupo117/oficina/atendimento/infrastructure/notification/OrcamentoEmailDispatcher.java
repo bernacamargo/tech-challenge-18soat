@@ -34,13 +34,21 @@ public class OrcamentoEmailDispatcher {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void enviarPendentes() {
         var pendentes = jdbc.query("""
-                SELECT n.id, COALESCE(n.destinatario, c.email) AS email, n.assunto, n.corpo
+                SELECT n.id, COALESCE(n.destinatario, c.email) AS email, n.assunto, n.corpo,
+                    (os.status <> 'AGUARDANDO_APROVACAO' OR os.orcamento_rejeitado_em IS NOT NULL) AS decidida
                 FROM notificacao_orcamento n JOIN cliente c ON c.cpf_cnpj = n.cliente_id
-                WHERE n.enviada_em IS NULL AND n.proxima_tentativa_em <= CURRENT_TIMESTAMP
-                ORDER BY n.proxima_tentativa_em, n.id LIMIT 10 FOR UPDATE OF n SKIP LOCKED
+                JOIN ordem_de_servico os ON os.id = n.ordem_de_servico_id
+                WHERE n.enviada_em IS NULL AND n.cancelada_em IS NULL
+                    AND n.proxima_tentativa_em <= CURRENT_TIMESTAMP
+                ORDER BY n.proxima_tentativa_em, n.id LIMIT 10 FOR UPDATE OF os, n SKIP LOCKED
                 """, (rs, row) -> new Mensagem(rs.getObject("id", UUID.class), rs.getString("email"),
-                        rs.getString("assunto"), rs.getString("corpo")));
+                        rs.getString("assunto"), rs.getString("corpo"), rs.getBoolean("decidida")));
         for (var mensagem : pendentes) {
+            if (mensagem.decidida()) {
+                jdbc.update("UPDATE notificacao_orcamento SET cancelada_em = CURRENT_TIMESTAMP, "
+                        + "ultimo_erro = NULL WHERE id = ?", mensagem.id());
+                continue;
+            }
             if (mensagem.email() == null) {
                 reagendar(mensagem.id(), "AGUARDANDO_EMAIL");
                 continue;
@@ -71,5 +79,5 @@ public class OrcamentoEmailDispatcher {
                 """, erro, id);
     }
 
-    private record Mensagem(UUID id, String email, String assunto, String corpo) { }
+    private record Mensagem(UUID id, String email, String assunto, String corpo, boolean decidida) { }
 }

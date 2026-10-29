@@ -157,6 +157,71 @@ class NotificacaoOrcamentoIntegrationTest extends AbstractIntegrationTest {
                 .isEqualTo("maria@exemplo.com");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"aprovacao", "rejeicao"})
+    void cancelaPendenteSemEmailAposDecisaoMesmoComContatoCadastradoDepois(String decisao) {
+        var os = prepararSemReservas();
+        service.submeter(os.id());
+        dispatcher.enviarPendentes();
+        assertThat(jdbc.queryForObject("SELECT ultimo_erro FROM notificacao_orcamento", String.class))
+                .isEqualTo("AGUARDANDO_EMAIL");
+        decidir(os.id(), decisao);
+        assertThat(restTemplate.exchange("/api/clientes/52998224725", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("nome", "Maria", "email", "maria@exemplo.com"), headers()),
+                String.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        liberarTentativa();
+        dispatcher.enviarPendentes();
+        dispatcher.enviarPendentes();
+        verifyNoInteractions(mail);
+        assertThat(jdbc.queryForObject("SELECT cancelada_em IS NOT NULL AND enviada_em IS NULL "
+                + "AND ultimo_erro IS NULL FROM notificacao_orcamento", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT tentativas FROM notificacao_orcamento", Integer.class)).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"aprovacao", "rejeicao"})
+    void naoReenviaAposFalhaSmtpSeClienteJaDecidiu(String decisao) {
+        var os = prepararSemReservas();
+        jdbc.update("UPDATE cliente SET email = 'maria@exemplo.com'");
+        service.submeter(os.id());
+        doThrow(new MailSendException("indisponivel")).when(mail).send(any(SimpleMailMessage.class));
+        dispatcher.enviarPendentes();
+        decidir(os.id(), decisao);
+        liberarTentativa();
+        dispatcher.enviarPendentes();
+        verify(mail, times(1)).send(any(SimpleMailMessage.class));
+        assertThat(jdbc.queryForObject("SELECT cancelada_em IS NOT NULL AND enviada_em IS NULL "
+                + "FROM notificacao_orcamento", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT tentativas FROM notificacao_orcamento", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void naoEnviaEnquantoDecisaoDaOsEstaEmTransacaoConcorrente() {
+        var os = prepararSemReservas();
+        jdbc.update("UPDATE cliente SET email = 'maria@exemplo.com'");
+        service.submeter(os.id());
+        new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+            jdbc.queryForObject("SELECT id FROM ordem_de_servico WHERE id = ? FOR UPDATE", UUID.class, os.id());
+            dispatcher.enviarPendentes();
+            verifyNoInteractions(mail);
+        });
+        dispatcher.enviarPendentes();
+        verify(mail).send(any(SimpleMailMessage.class));
+    }
+
+    private OrdemDeServico prepararSemReservas() {
+        var os = service.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012);
+        os.incluirItem(new ItemDaOS(UUID.randomUUID(), UUID.randomUUID(), TipoItemOS.SERVICO,
+                "Revisao", 1, new Dinheiro(new BigDecimal("80.50"))));
+        return ordens.salvar(os);
+    }
+
+    private void decidir(UUID id, String decisao) {
+        Object corpo = decisao.equals("rejeicao") ? Map.of("motivo", "Nao autorizado") : null;
+        assertThat(restTemplate.postForEntity("/api/acompanhamento/ordens-de-servico/" + id + "/" + decisao,
+                corpo, String.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
     private OrdemDeServico preparar(boolean email) {
         if (email) assertThat(restTemplate.exchange("/api/clientes", HttpMethod.POST,
                 new HttpEntity<>(Map.of("nome", "Maria", "cpfCnpj", "52998224725", "email", "maria@exemplo.com"), headers()),

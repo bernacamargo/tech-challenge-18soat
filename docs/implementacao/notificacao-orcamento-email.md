@@ -66,13 +66,16 @@ SMTP :1025 em loopback para desenvolvimento via Maven.
 
 Se o SMTP falhar, a resposta da geração do orçamento permanece válida. A fila recebe
 `FALHA_SMTP` e tenta novamente após um minuto. O envio não aprova a OS nem movimenta estoque.
-Mensagens enviadas não são reenviadas normalmente; uma queda entre aceite SMTP e gravação do
+Após aprovação ou rejeição, uma solicitação ainda pendente é cancelada pelo dispatcher na
+próxima tentativa, preservando snapshot, tentativas e `cancelada_em`. A OS é bloqueada durante
+a decisão de envio e o SMTP: se a decisão já confirmou, não envia; se o envio começou antes,
+a decisão aguarda seu término. Mensagens enviadas não são reenviadas normalmente; uma queda entre aceite SMTP e gravação do
 sucesso pode duplicar a entrega (garantia pelo menos uma vez).
 
 Consulta administrativa local, sem conteúdo ou destinatário:
 
 ```sql
-SELECT ordem_de_servico_id, criada_em, enviada_em, tentativas,
+SELECT ordem_de_servico_id, criada_em, enviada_em, cancelada_em, tentativas,
        proxima_tentativa_em, ultimo_erro
 FROM notificacao_orcamento
 ORDER BY criada_em DESC;
