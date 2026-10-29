@@ -45,7 +45,7 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 - **Testcontainers** (testes de integração com PostgreSQL real)
 - **JaCoCo** (gate de 80% de cobertura em domain/application), **SonarCloud** (qualidade),
   **OWASP Dependency-Check** (análise de vulnerabilidades)
-- **Docker** (Dockerfile multi-stage + docker-compose), **GitHub Actions** (CI)
+- **Docker** (Dockerfile multi-stage + docker-compose), **GitHub Actions** (CI + release por tag no GHCR)
 
 ## Pré-requisitos
 
@@ -250,6 +250,26 @@ src/test/java/     testes unitários e de integração (Testcontainers)
 - Export no repositório: [`docs/ddd/`](docs/ddd/) (linguagem ubíqua e glossário) e
   [`docs/ddd/event-storming/`](docs/ddd/event-storming/) (um arquivo por fluxo),
   [`docs/diagramas/`](docs/diagramas/) (C4 e domínio).
+
+## Release (imagem no GHCR)
+
+A release é cortada manualmente a partir de um commit de `main` cujo check `ci` esteja verde
+([ADR 0019](docs/adr/0019-release-por-tag-ghcr.md)). Não há deploy neste fluxo; a hospedagem
+na AWS fica para um ADR futuro.
+
+```bash
+# a partir de main atualizada, no SHA desejado:
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+O workflow `.github/workflows/release.yml` publica:
+
+- Imagem: `ghcr.io/bernacamargo/tech-challenge-18soat:0.1.0` (e `sha-<curto>`)
+- [GitHub Release](https://github.com/bernacamargo/tech-challenge-18soat/releases) com notas geradas
+
+Após o primeiro push, nas Settings do pacote no GHCR: vincular o repositório e tornar o pacote
+público (o token do Actions não altera visibilidade).
 
 ## Análise de vulnerabilidades
 
