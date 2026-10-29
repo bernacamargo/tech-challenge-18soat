@@ -60,7 +60,7 @@ docker compose --profile full up -d --build               # app + PostgreSQL
 
 ## Teste ponta a ponta
 
-Para repetir o teste da API no ar (Swagger, MailPit, Keycloak e relatório com screenshots versionado por data/hora), siga a skill [`.cursor/skills/teste-e2e/SKILL.md`](.cursor/skills/teste-e2e/SKILL.md). As execuções ficam em `docs/e2e/`.
+Para repetir o teste do sistema no ar (atendimento, catálogo e estoque, identidade e notificação, com Swagger, MailPit, Keycloak e relatório versionado por data/hora), siga a skill [`.cursor/skills/teste-e2e/SKILL.md`](.cursor/skills/teste-e2e/SKILL.md). As execuções ficam em `docs/e2e/`.
 
 ## Qualidade — definição de pronto
 

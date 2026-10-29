@@ -1,8 +1,10 @@
 # Teste ponta a ponta — 29/10/2026 16:27:53, America/Sao_Paulo
 
-Execução contra o código do [PR #85](https://github.com/bernacamargo/tech-challenge-18soat/pull/85), commit `1a51b79793d39620f435ad55844ae7be81d2be2f` (`fix/auditoria-fluxos-api`). As chamadas terminaram por volta de **17:16, America/Sao_Paulo** (o envio do orçamento ficou registrado às 20:16:12 UTC).
+Execução do sistema da oficina no commit `1a51b79793d39620f435ad55844ae7be81d2be2f`. Percorre o ciclo da ordem de serviço, o estoque, o orçamento, a notificação por e-mail e as regras de autorização e de cadastro. As chamadas terminaram por volta de **17:16, America/Sao_Paulo** (o envio do orçamento ficou registrado às 20:16:12 UTC).
 
 Resultado: **os nove cenários passaram.**
+
+Cadastro avulso de cliente e veículo, listagens, entrada de estoque bem-sucedida e os papéis restantes do ciclo estão na execução das [18:51](../2026-10-29T18-51-33-03/evidencias.md) do mesmo dia.
 
 ## Ambiente
 
