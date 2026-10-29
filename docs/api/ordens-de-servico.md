@@ -5,7 +5,7 @@ A inclusão de itens consulta o catálogo e reserva peças no estoque; a aprova�
 
 ## Endpoints
 
-| Método | Rota | Papéis | Comportamento |
+| Método | Rota | Perfis | Comportamento |
 |---|---|---|---|
 | POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida; pode apontar um serviço ou uma peça |
 | GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista ordenada pelo UUID |
@@ -39,7 +39,7 @@ A resposta contém `id`, `clienteId` (documento normalizado), `veiculoId` (placa
 Cada item contém UUID, referência ao catálogo, tipo, descrição, quantidade, preço unitário e
 subtotal. O orçamento contém o total; antes da geração é nulo e OS nova tem itens vazios. Criação retorna 201 e cabeçalho Location.
 Veículo já cadastrado deve pertencer ao cliente informado. As três ações da #35 não recebem corpo e retornam 200 com a OS atualizada.
-UUID inválido retorna 400, OS inexistente 404, ausência de JWT 401 e papel não autorizado 403.
+UUID inválido retorna 400, OS inexistente 404, ausência de JWT 401 e perfil não autorizado 403.
 Transição inválida, incluindo repetição, retorna 409 com `mensagem`, preservando o estado.
 Conclusão usa o relógio UTC do servidor com precisão de microssegundos (PostgreSQL),
 e entrega preserva esse momento. Aprovação registra o início na mesma precisão.
@@ -56,9 +56,10 @@ Exclusão física de cliente/veículo referenciado fica impedida pelas FKs (ADR 
 ## Segurança e verificação
 
 Swagger em `/swagger-ui.html`, usando o esquema `bearer-jwt` existente. As rotas exigem JWT
-e os papéis são verificados por `@PreAuthorize`, sem alterações nos controllers dos cadastros.
-O ambiente Keycloak/MailPit continua pendente da #6; os testes usam o JWT assinado do suporte
-existente, sem afirmar validação ponta a ponta de login com Keycloak.
+e os perfis são verificados por `@PreAuthorize`, sem alterações nos controllers dos cadastros.
+Desde a #6, Keycloak e MailPit sobem no compose (perfis de execução `dev`/`full`). Os testes de
+integração usam JWT RS256 assinado por chave de teste e servido por JWKS local (ADR 0019); a
+validação ponta a ponta com o Keycloak está no procedimento do README.
 
 ```bash
 ./mvnw -B clean verify
@@ -75,7 +76,7 @@ cliente o UUID retornado na criação administrativa. A resposta contém somente
 da OS (ADR 0009). UUID inexistente retorna 404; formato inválido retorna 400.
 
 A liberação pública cobre a consulta e os comandos de aprovação e rejeição do cliente (ADR 0015).
-Criação, listagem e detalhe administrativo continuam exigindo JWT e os papéis existentes.
+Criação, listagem e detalhe administrativo continuam exigindo JWT e os perfis existentes.
 
 A migration V5 persiste os itens ordenados e o total do orçamento (ADR 0011).
 `ItensOrcamentoPersistenceIntegrationTest` verifica gravações sucessivas, valores e identidade
@@ -85,7 +86,7 @@ dos itens, detalhe administrativo, isolamento da consulta pública e rollback de
 
 A fronteira transacional `OrdemDeServicoService` envolve busca, transição e gravação, utilizando
 os casos de uso existentes. Nenhum endpoint recebe status arbitrário. Não há mudanças de schema.
-Os papéis seguem o Event Storming, com ADMINISTRADOR autorizado nas três ações.
+Os perfis seguem o Event Storming, com ADMINISTRADOR autorizado nas três ações.
 
 `TransicoesOrdemDeServicoApiIntegrationTest` valida respostas, permissões, OS ausente, UUID
 inválido, transições inválidas/repetidas, preservação de itens/orçamento, horário de conclusão,
@@ -100,12 +101,12 @@ Aguardando aprovação. `POST /api/ordens-de-servico/{id}/submissao` faz o mesmo
 Recebida ou Em diagnóstico. O serviço envolve leitura, geração e gravação em uma transação.
 
 OS sem itens retorna 400; estado incompatível (incluindo repetição) retorna 409. OS ausente
-retorna 404, UUID inválido 400, JWT ausente 401 e papel não permitido 403.
+retorna 404, UUID inválido 400, JWT ausente 401 e perfil não permitido 403.
 Falhas de validação/gravação preservam o estado anterior. A consulta pública continua exibindo
 somente andamento. Esses comandos não enviam e-mail nem aprovam a execução.
 
 `GerarOrcamentoApiIntegrationTest` verifica total com serviços/peças, persistência e detalhe,
-consulta pública, papéis, estados inválidos, repetição, OS vazia, identificador e rollback real.
+consulta pública, perfis, estados inválidos, repetição, OS vazia, identificador e rollback real.
 Nessa suíte, os itens são preparados via repositório. A suíte `ItensAprovacaoOSApiIntegrationTest`
 complementa a verificação pelo fluxo HTTP completo, desde o cadastro no catálogo até a entrega.
 
@@ -133,7 +134,7 @@ Exemplo dos novos campos em uma OS rejeitada:
 }
 ```
 
-Continuam valendo JWT e os papéis ATENDENTE, MECANICO e ADMINISTRADOR para as consultas
+Continuam valendo JWT e os perfis ATENDENTE, MECANICO e ADMINISTRADOR para as consultas
 administrativas. A resposta pública mantém exclusivamente `status` e `finalizadaEm`, inclusive
 quando há início ou rejeição registrados. Não há novo comando público de aprovação/rejeição.
 
@@ -204,7 +205,7 @@ Falha de persistência reverte a baixa, a devolução e a decisão juntas. Ver A
 
 `IntegracaoEstoqueOSIntegrationTest` verifica rollback, correspondência de reservas,
 idempotência por item e concorrência real. `ItensAprovacaoOSApiIntegrationTest` verifica o fluxo
-HTTP completo, papéis, validações, aprovação sem peças, rejeição prévia, rollback da baixa e Swagger.
+HTTP completo, perfis, validações, aprovação sem peças, rejeição prévia, rollback da baixa e Swagger.
 
 ### Evidência local — 2026-10-23
 

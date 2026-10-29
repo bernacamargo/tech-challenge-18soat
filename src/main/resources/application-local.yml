@@ -2,5 +2,5 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/oficina
-    username: oficina
-    password: oficina
+    username: oficina_app
+    password: oficina-app-local

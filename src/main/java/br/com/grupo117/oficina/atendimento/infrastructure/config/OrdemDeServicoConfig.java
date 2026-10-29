@@ -20,10 +20,8 @@ import br.com.grupo117.oficina.atendimento.application.port.NotificacaoPort;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
-@EnableMethodSecurity
 public class OrdemDeServicoConfig {
     @Bean
     CriarOrdemDeServico criarOrdemDeServico(ClienteRepositorio clientes, CadastrarVeiculo cadastrarVeiculo,

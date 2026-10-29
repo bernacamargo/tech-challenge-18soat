@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearer-jwt")
 @ApiResponses({@ApiResponse(responseCode = "400", description = "Requisição inválida ou item ausente no catálogo"),
         @ApiResponse(responseCode = "401", description = "Autenticação necessária"),
-        @ApiResponse(responseCode = "403", description = "Papel sem permissão"),
+        @ApiResponse(responseCode = "403", description = "Perfil sem permissão"),
         @ApiResponse(responseCode = "404", description = "OS não encontrada"),
         @ApiResponse(responseCode = "409", description = "Estado, estoque ou reservas incompatíveis; disputa concorrente")})
 public class ItensOrcamentoOSController {

@@ -1,6 +1,6 @@
 package br.com.grupo117.oficina;
 
-import br.com.grupo117.oficina.infra.security.JwtTestSupport;
+import br.com.grupo117.oficina.infra.security.JwksTestServer;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Map;
@@ -45,7 +45,7 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("oficina.security.jwt-secret", () -> JwtTestSupport.SECRET);
+        registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri", JwksTestServer::uri);
     }
 
     @BeforeEach
