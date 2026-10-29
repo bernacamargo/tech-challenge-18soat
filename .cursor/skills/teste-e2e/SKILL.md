@@ -5,6 +5,8 @@ description: Roda o teste ponta a ponta do sistema da oficina contra a API no ar
 
 # Teste ponta a ponta da oficina
 
+> **Mudança em relação ao roteiro anterior (#91/E2E):** Keycloak pelo compose (`quay.io/keycloak/keycloak:26.8.1-1`) em vez de `docker run` 26.4.0; realm único `keycloak/realm-oficina.json` (o `docs/e2e/keycloak/oficina-realm.json` foi removido no PR #79); senha dos usuários lida do JSON (`demo123` deixou de valer) e admin do console `admin` com a senha `admin-local-demo`; as execuções em `docs/e2e/2026-10-29*` são histórico do roteiro antigo.
+
 Exercita o sistema da oficina em execução: atendimento, catálogo e estoque, identidade e notificação. O objeto é o projeto no commit em que a API subiu. Deixa um relatório versionado por data e hora. A evidência é o sistema no ar; não crie teste JUnit novo. Não substitua o Keycloak por segredo HMAC. Se o issuer divergir ou o Keycloak não ficar saudável, registre a falha no relatório e pare.
 
 ## Quando gravar
@@ -20,44 +22,29 @@ Crie `docs/e2e/<pasta>/evidencias.md` e `docs/e2e/<pasta>/imagens/`. Não apague
 
 ## Ambiente
 
-A JVM fica no host para o claim `iss` coincidir com `http://localhost:8081/realms/oficina`.
+Keycloak, Postgres e MailPit sobem pelo compose (realm `oficina` importado de `keycloak/realm-oficina.json` na primeira subida). Com a JVM no host, suba o compose antes do `spring-boot:run` (o `postgres-init` cria a role `oficina_app`):
 
 ```bash
-docker compose --profile dev up -d
+docker compose --profile dev up -d --wait
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Keycloak efêmero na porta 8081, importando `docs/e2e/keycloak/oficina-realm.json`:
-
-```bash
-docker run -d --name keycloak \
-  -p 8081:8080 \
-  -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-  -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-  -e KC_HOSTNAME=http://localhost:8081 \
-  -e KC_HOSTNAME_STRICT=false \
-  -e KC_HTTP_ENABLED=true \
-  -e KC_HEALTH_ENABLED=true \
-  -v "$PWD/docs/e2e/keycloak:/opt/keycloak/data/import:ro" \
-  quay.io/keycloak/keycloak:26.4.0 \
-  start-dev --import-realm --http-port=8080
-```
-
-Espere `GET http://localhost:8080/api/health` e o documento OpenID em `http://localhost:8081/realms/oficina/.well-known/openid-configuration`. Confira que `issuer` é `http://localhost:8081/realms/oficina`. Depois do Flyway:
+Ou tudo em container: `docker compose --profile full up -d --build --wait`. Nos dois casos o issuer é `http://localhost:8081/realms/oficina`; confira em `http://localhost:8081/realms/oficina/.well-known/openid-configuration` e espere `GET http://localhost:8080/api/health`. O console do Keycloak fica em `http://localhost:8081`, usuário `admin` e senha `admin-local-demo` (default local do compose). Depois do Flyway:
 
 ```bash
 ./scripts/popular-catalogo-demo.sh
 ```
 
-Token (password grant, client público `oficina-api`, senha `demo123`):
+Token (password grant, client público `oficina-api`). A senha dos usuários `atendente`, `mecanico` e `administrador` é lida do realm versionado, sem exibi-la; não grave token nem senha no relatório:
 
 ```bash
-curl -s -X POST "http://localhost:8081/realms/oficina/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=oficina-api&username=administrador&password=demo123"
+SENHA_DEMO=$(jq -r '.users[] | select(.username=="administrador") | .credentials[0].value' keycloak/realm-oficina.json)
+TOKEN=$(curl -s -X POST "http://localhost:8081/realms/oficina/protocol/openid-connect/token" \
+  -d grant_type=password -d client_id=oficina-api -d username=administrador \
+  --data-urlencode "password=$SENHA_DEMO" | jq -r .access_token)
 ```
 
-Repita para `atendente` e `mecanico`. No Swagger (`http://localhost:8080/swagger-ui.html`), Authorize com `Bearer <access_token>`.
+Repita para `atendente` e `mecanico`. No Swagger (`http://localhost:8080/swagger-ui.html`), em Authorize, cole só o valor do token (sem o prefixo `Bearer`). Se o realm mudar, siga o reset do realm do README (nunca `docker compose down -v`).
 
 ## Como evidenciar
 

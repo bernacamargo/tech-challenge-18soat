@@ -1,20 +1,23 @@
 # Catálogo opcional para demonstração
 
+> **Mudança em relação ao roteiro anterior (#91/E2E):** o Keycloak sobe pelo compose (`quay.io/keycloak/keycloak:26.8.1-1`, realm único `keycloak/realm-oficina.json`; o `docs/e2e/keycloak/oficina-realm.json` foi removido no PR #79) e as senhas de demonstração mudaram (`demo123` deixou de valer); valores e token na seção "Credenciais de demonstração (somente local)" do [README](../README.md).
+
 A carga facilita a avaliação sem precisar cadastrar todo o catálogo manualmente.
 Ela insere apenas serviços e peças/insumos de exemplo; não simula login, clientes, OS,
 reservas, decisões ou conclusão de serviços. Esses fluxos continuam sendo demonstrados pelas APIs.
 
 ## Ordem de execução
 
-1. Suba o banco: `docker compose --profile dev up -d`.
+1. Suba o banco, o Keycloak e o MailPit: `docker compose --profile dev up -d --wait`.
 2. Inicie a aplicação: `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`.
 3. Aguarde a inicialização, incluindo o Flyway. Em outro terminal, execute `./scripts/popular-catalogo-demo.sh` na raiz do projeto.
 4. Acesse o Swagger em `http://localhost:8080/swagger-ui.html`, autorize com JWT e consulte `/api/servicos` e `/api/pecas`.
 
 Se preferir app e banco no Docker, use `docker compose --profile full up -d --build`, aguarde
-`http://localhost:8080/api/health` responder e execute o mesmo script. A autenticação depende
-do emissor/segredo configurado na aplicação. Use um JWT válido com os papéis indicados
-na documentação das rotas.
+`http://localhost:8080/api/health` responder e execute o mesmo script. A autenticação usa o
+Keycloak do compose (realm `oficina`, issuer `http://localhost:8081/realms/oficina`). Obtenha
+o access token como descrito no README, seção "Procedimento de autenticação", com um usuário
+cujo Perfil a rota exige.
 
 O banco sozinho ainda não tem as tabelas: elas são criadas pelo Flyway ao iniciar a aplicação.
 Se a carga for executada antes disso, termina com uma mensagem de erro sem inserir dados.

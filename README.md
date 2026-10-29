@@ -22,7 +22,7 @@ API REST monolítica organizada por **Clean Architecture + DDD**, com três boun
 |---|---|
 | `atendimento` (core) | Ciclo de vida da Ordem de Serviço: criação, orçamento, aprovação, execução, entrega |
 | `catalogoestoque` | Catálogo de serviços, peças e insumos, com controle e reserva de estoque |
-| `identidadeacesso` | Usuários administrativos e autenticação JWT das APIs administrativas |
+| `identidadeacesso` | Identidade por requisição a partir do token do Keycloak; sem cadastro de usuários na aplicação |
 
 Fluxo principal: cliente identificado por **CPF/CNPJ** → veículo cadastrado (placa, marca, modelo,
 ano) → serviços e peças incluídos → **orçamento gerado automaticamente** → aprovação/rejeição pelo
@@ -41,7 +41,8 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 - **Java 21**, **Spring Boot 3.5.x** (Web, Data JPA, Security, Validation, Actuator)
 - **PostgreSQL 17** + **Flyway** (migrations) + Spring Data JPA
 - **springdoc-openapi** (Swagger UI)
-- **Notificações por e-mail**: servidor SMTP local **MailPit** em Docker (envio real via SMTP, e-mails visualizados em UI própria)
+- **Notificações por e-mail**: servidor SMTP local **MailPit** em Docker (envio real via SMTP, e-mails visualizados em UI própria), compartilhado pela aplicação (orçamento, [ADR 0007](docs/adr/0007-notificacoes-smtp-local.md) e [ADR 0017](docs/adr/0017-notificacao-orcamento-email.md)) e pelo Keycloak (e-mails de ação de conta)
+- **Keycloak** (autenticação e Perfis; [ADR 0006](docs/adr/0006-keycloak-autenticacao-autorizacao.md) e [ADR 0019](docs/adr/0019-integracao-operacional-keycloak.md)): a API valida o access token RS256 pelo JWKS
 - **Testcontainers** (testes de integração com PostgreSQL real)
 - **JaCoCo** (gate de 80% de cobertura em domain/application), **SonarCloud** (qualidade),
   **OWASP Dependency-Check** (análise de vulnerabilidades)
@@ -50,52 +51,46 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 ## Pré-requisitos
 
 - JDK 21 (Temurin)
-- Docker + Docker Compose (PostgreSQL, MailPit, Keycloak e Testcontainers)
+- Docker + Docker Compose (PostgreSQL, Keycloak, MailPit e Testcontainers), com pelo menos **4 GB** de RAM para o Docker (medido no perfil de execução `full`: cerca de 1,6 GB em uso, mais folga para o build da imagem)
+- `curl`, `jq` (1.6+) e `uuidgen`, usados nos exemplos de autenticação
 - Não é necessário Maven instalado (o wrapper `./mvnw` baixa o necessário)
 
 ## Passo a passo para executar
 
-A API sobe na máquina, com o perfil `local`. O banco e o MailPit vêm do Compose. O Keycloak sobe num container à parte, na porta `8081`. O token emitido traz o issuer `http://localhost:8081/realms/oficina`, e a API valida o JWT por esse endereço.
+Há dois perfis de execução do Compose:
 
-### 1. PostgreSQL e MailPit
+| Perfil de execução | Serviços | A API roda |
+|---|---|---|
+| `dev` | `postgres`, `postgres-init` (one-shot que cria as roles e os schemas e termina), `keycloak`, `mailpit` | na máquina, com `./mvnw spring-boot:run -Dspring-boot.run.profiles=local` |
+| `full` | os mesmos + `app` | no container `app` |
+
+Imagens: `postgres:17-alpine`, `quay.io/keycloak/keycloak:26.8.1-1` e `axllent/mailpit:v1.31.6`. Nos dois perfis de execução o token traz o issuer `http://localhost:8081/realms/oficina`, e a API valida o JWT por esse endereço.
+
+> **Mudança em relação ao roteiro anterior (#91/E2E):** o Keycloak agora sobe pelo compose (perfis de execução `dev` e `full`, imagem `quay.io/keycloak/keycloak:26.8.1-1`), e não mais por `docker run` com a imagem 26.4.0; o único realm versionado é `keycloak/realm-oficina.json` (o `docs/e2e/keycloak/oficina-realm.json` foi removido no PR #79); a senha dos usuários de demonstração mudou (`demo123` deixou de valer por causa da política de senha do realm, com mínimo de 8 caracteres) e o admin do console (usuário `admin`) tem senha própria, diferente do usuário, com os valores na [tabela de credenciais](#credenciais-de-demonstração-somente-local); os registros de execução em `docs/e2e/2026-10-29*` foram mantidos como histórico e citam o roteiro antigo.
+
+### 1. Postgres, Keycloak e MailPit
 
 Na raiz do repositório:
 
 ```bash
-docker compose --profile dev up -d
+docker compose --profile dev up -d --wait
 ```
 
-O perfil `dev` publica o Postgres em `localhost:5432` (banco, usuário e senha `oficina`) e o MailPit em `localhost:8025` (interface) e `localhost:1025` (SMTP). Espere o Postgres ficar saudável:
+O `--wait` só termina quando `postgres`, `keycloak` e `mailpit` estão saudáveis e o `postgres-init` terminou. Suba o compose antes do `./mvnw spring-boot:run`: é o `postgres-init` que cria a role `oficina_app` usada pela aplicação. O Postgres fica em `127.0.0.1:5432` e o MailPit em `127.0.0.1:8025` (interface) e `127.0.0.1:1025` (SMTP). Os usuários e as senhas estão na [tabela de credenciais](#credenciais-de-demonstração-somente-local).
 
 ```bash
-docker compose ps
+docker compose ps -a
 ```
 
 ### 2. Keycloak
 
-O realm de demonstração está em `docs/e2e/keycloak/oficina-realm.json` (realm `oficina`, client público `oficina-api`, papéis `ATENDENTE`, `MECANICO` e `ADMINISTRADOR`).
+O Keycloak sobe com o compose e, na primeira subida, importa o realm versionado em `keycloak/realm-oficina.json` (realm `oficina`, client público `oficina-api`, sem client secret, Perfis `ATENDENTE`, `MECANICO` e `ADMINISTRADOR`). Confira o issuer:
 
 ```bash
-docker run -d --name keycloak \
-  -p 8081:8080 \
-  -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-  -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-  -e KC_HOSTNAME=http://localhost:8081 \
-  -e KC_HOSTNAME_STRICT=false \
-  -e KC_HTTP_ENABLED=true \
-  -e KC_HEALTH_ENABLED=true \
-  -v "$PWD/docs/e2e/keycloak:/opt/keycloak/data/import:ro" \
-  quay.io/keycloak/keycloak:26.4.0 \
-  start-dev --import-realm --http-port=8080
+curl -s http://localhost:8081/realms/oficina/.well-known/openid-configuration | jq -r .issuer
 ```
 
-A primeira subida leva um pouco. Confira o issuer antes de seguir:
-
-```bash
-curl -s http://localhost:8081/realms/oficina/.well-known/openid-configuration
-```
-
-O campo `issuer` precisa ser `http://localhost:8081/realms/oficina`. O console fica em `http://localhost:8081` (usuário `admin`, senha `admin`, só para desenvolvimento).
+A saída precisa ser `http://localhost:8081/realms/oficina`. O console fica em `http://localhost:8081` (só em `127.0.0.1`), com o admin do realm `master` da tabela de credenciais.
 
 ### 3. API
 
@@ -113,13 +108,22 @@ curl -s http://localhost:8080/api/health
 
 A resposta esperada é `status` `UP` e `app` `oficina`. O Actuator responde em `http://localhost:8080/actuator/health`.
 
+Alternativa com a API em container (perfil de execução `full`; não rode o `spring-boot:run` ao mesmo tempo, porque os dois usam a porta `8080`):
+
+```bash
+docker compose --profile full up -d --build --wait
+```
+
 | Serviço | Endereço |
 |---|---|
 | API | http://localhost:8080 |
 | Swagger | http://localhost:8080/swagger-ui.html |
-| Health | http://localhost:8080/api/health |
-| MailPit | http://localhost:8025 |
-| Keycloak | http://localhost:8081 |
+| Health | http://localhost:8080/api/health e http://localhost:8080/actuator/health |
+| Keycloak (console, só `127.0.0.1`) | http://localhost:8081 |
+| Endpoint de token | http://localhost:8081/realms/oficina/protocol/openid-connect/token |
+| MailPit (só `127.0.0.1`) | http://localhost:8025 |
+
+A porta `8080` da API é publicada em todas as interfaces (desvio conhecido, [ADR 0021](docs/adr/0021-politica-seguranca-identidade.md)); as demais ficam em `127.0.0.1`.
 
 ### 4. Catálogo de demonstração (opcional)
 
@@ -133,19 +137,9 @@ Os detalhes da carga estão na seção [Catálogo de demonstração](#catálogo-
 
 ### 5. Token e Swagger
 
-Usuários locais (senha `demo123`): `atendente`, `mecanico`, `administrador`.
-
-```bash
-curl -s -X POST "http://localhost:8081/realms/oficina/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=oficina-api&username=administrador&password=demo123"
-```
-
-Troque `username` para obter o token dos outros papéis. No Swagger, em **Authorize**, informe `Bearer` seguido do `access_token`.
+O token, as chamadas de exemplo e os códigos esperados estão em [Procedimento de autenticação](#procedimento-de-autenticação). No Swagger, em **Authorize**, cole só o valor do `access_token` (sem o prefixo `Bearer`); para copiar sem exibir, use `printf %s "$TOKEN" | pbcopy` (macOS) ou `printf %s "$TOKEN" | xclip -selection clipboard` (Linux).
 
 O e-mail do orçamento aparece no MailPit depois que a OS chega em `AGUARDANDO_APROVACAO` com contato cadastrado. O guia está em [docs/implementacao/notificacao-orcamento-email.md](docs/implementacao/notificacao-orcamento-email.md).
-
-Para entrar no Swagger com os usuários de demonstração, siga os passos 1 a 3. O comando `docker compose --profile full up -d --build` publica a API junto com Postgres e MailPit; o login deste passo a passo continua na API executada na máquina, com o issuer em `localhost:8081`.
 
 ## E-mail do orçamento
 
@@ -179,8 +173,8 @@ veículos ou OS. Os detalhes e exemplos estão em [guia da demonstração](docs/
 APP_PROFILES=observability docker compose --profile full --profile observability up -d --build
 ```
 
-Acesse **http://localhost:3000/d/oficina-api** com usuário `admin` e senha local
-`grafana-local-demo`. O dashboard **Oficina — Saúde da API** já vem provisionado com
+Acesse **http://localhost:3000/d/oficina-api** com o usuário e a senha do Grafana da seção
+[Credenciais de demonstração](#credenciais-de-demonstração-somente-local). O dashboard **Oficina — Saúde da API** já vem provisionado com
 requisições, status HTTP, latência, JVM e conexões do banco. O Prometheus coleta a cada
 15 segundos e está em http://localhost:9090. As duas interfaces são publicadas em localhost.
 
@@ -215,19 +209,102 @@ Com a aplicação no ar: **http://localhost:8080/swagger-ui.html** (OpenAPI em `
 - JSONB disponível caso haja necessidade de dados semiestruturados, sem introduzir um segundo banco.
 - Ecossistema maduro: JPA/Hibernate, Flyway e Testcontainers com suporte de primeira classe.
 
-## Usuários e credenciais de demonstração
+O Keycloak usa o mesmo banco `oficina`, no schema `keycloak` ([ADR 0020](docs/adr/0020-isolamento-dados-identidade.md)). Na primeira subida, o Keycloak cria sozinho cerca de 100 tabelas nesse schema: é o modelo fixo do produto, migrado por ele mesmo e fora do Flyway. Muitas são de recursos que não usamos (federação LDAP, login social, organizações, autorização fina) e ficam vazias. Elas não fazem parte do modelo da oficina, que fica no schema `public`. Detalhes em [Por que o Keycloak tem mais de 100 tabelas](docs/adr/0020-isolamento-dados-identidade.md#por-que-o-keycloak-tem-mais-de-100-tabelas).
 
-As APIs administrativas exigem o JWT do Keycloak (ADR-0006). O passo a passo acima sobe o realm `oficina` e o client público `oficina-api`. A API valida o token pelo JWKS; ela não emite nem guarda senha.
+## Usuários, credenciais de demonstração e procedimento de autenticação
 
-**Usuários de demonstração** (somente ambiente local):
+As APIs administrativas exigem o access token do Keycloak (ADR 0006). A API valida o token pelo JWKS e não emite nem guarda senha. Consulta, aprovação e rejeição públicas da OS ficam em `/api/acompanhamento/ordens-de-servico/{id}` e não usam token.
 
-| Usuário | Senha | Papel |
+### Credenciais de demonstração (somente local)
+
+| Serviço/conta | Usuário | Senha | Onde se configura | Observação |
+|---|---|---|---|---|
+| Postgres administração | `oficina` | `oficina` | `docker-compose.yml` | superusuário da imagem, só administração e o init `postgres-init`; a app não o usa; `127.0.0.1:5432` |
+| Postgres da app | `oficina_app` | `oficina-app-local` | `APP_DB_PASSWORD` | usuário da app e do Flyway, sem superusuário, dono do schema `public` |
+| Keycloak no Postgres | `keycloak` | `keycloak-local` | `KEYCLOAK_DB_PASSWORD` | dono do schema `keycloak` do banco `oficina`, sem acesso ao `public` |
+| Admin do Keycloak (realm `master`) | `admin` | `admin-local-demo` | `KC_BOOTSTRAP_ADMIN_USERNAME`, `KC_BOOTSTRAP_ADMIN_PASSWORD` | mudar a variável depois da 1ª subida não tem efeito sem reset do realm |
+| Realm `oficina` | `atendente` | `Oficina@2026` | `keycloak/realm-oficina.json` | Perfil `ATENDENTE` |
+| Realm `oficina` | `mecanico` | `Oficina@2026` | `keycloak/realm-oficina.json` | Perfil `MECANICO` |
+| Realm `oficina` | `administrador` | `Oficina@2026` | `keycloak/realm-oficina.json` | Perfil `ADMINISTRADOR` |
+| Grafana (perfil de execução `observability`) | `admin` | `grafana-local-demo` | `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD` | `127.0.0.1:3000`; a senha só vale no primeiro boot do volume |
+
+Um banco só, `oficina` (ADR-0002, [ADR 0020](docs/adr/0020-isolamento-dados-identidade.md)): as tabelas da oficina ficam no schema `public` e as do Keycloak, criadas e migradas por ele mesmo, no schema `keycloak`; cada role só acessa o próprio schema.
+
+Perfil é o termo do domínio; no Keycloak corresponde à *realm role* e no Spring à authority `ROLE_*` (ver [glossário](docs/ddd/linguagem-ubiqua.md)).
+
+São valores públicos, só para o ambiente local: o enunciado pede usuários, credenciais de demonstração ou procedimento de autenticação. O password grant está habilitado só para demonstração (RFC 9700); em produção, Authorization Code + PKCE ([ADR 0021](docs/adr/0021-politica-seguranca-identidade.md)).
+
+#### Desbloqueio de usuário
+
+O realm tem proteção contra força bruta: 5 senhas erradas bloqueiam o usuário temporariamente (espera de 60 s a 900 s), e durante o bloqueio até a senha certa recebe `invalid_grant`. Duas tentativas com menos de 1 s de intervalo disparam o *quick login check*. Para desbloquear antes do tempo, use a admin API com o admin do realm `master`:
+
+```bash
+# Desbloqueio pela admin API (troque mecanico pelo usuário bloqueado)
+ADM=$(curl -s -X POST http://localhost:8081/realms/master/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=admin-cli -d username="${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}" \
+  --data-urlencode "password=${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin-local-demo}" | jq -r .access_token)
+USR_ID=$(curl -s -H "Authorization: Bearer $ADM" \
+  "http://localhost:8081/admin/realms/oficina/users?username=mecanico&exact=true" | jq -r '.[0].id')
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE -H "Authorization: Bearer $ADM" \
+  "http://localhost:8081/admin/realms/oficina/attack-detection/brute-force/users/$USR_ID"                     # 204
+```
+
+O `204` também volta quando o usuário não está bloqueado (a chamada é idempotente).
+
+### Procedimento de autenticação
+
+Com o perfil de execução `dev` (e a API na máquina) ou `full` no ar, exporte a senha dos usuários de demonstração, copiada da tabela de credenciais acima, numa variável de shell (por exemplo, `read -rs SENHA_DEMO && export SENHA_DEMO`). Os blocos abaixo a leem de `SENHA_DEMO` e não a exibem.
+
+```bash
+# Funções de apoio (bash/zsh). jwtp decodifica o payload (ou o header com 1) sem exibir o token.
+: "${SENHA_DEMO:?exporte SENHA_DEMO com a senha da tabela de credenciais}"
+jwtp(){ local p; p=$(cut -d. -f"${2:-2}" <<<"$1" | tr '_-' '/+'); while (( ${#p} % 4 )); do p="$p="; done; base64 -d <<<"$p"; }
+token(){ curl -s -X POST http://localhost:8081/realms/oficina/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=oficina-api -d username="$1" \
+  --data-urlencode "password=$SENHA_DEMO" | jq -r .access_token; }
+
+TOKEN=$(token atendente)                      # não faça echo "$TOKEN"
+jwtp "$TOKEN" | jq '{iss,aud,azp,typ,sub,preferred_username,realm_access,exp,iat}'
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/api/clientes                                   # 401
+curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/clientes # 200
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8080/api/pecas/$(uuidgen)"                                                                # 403
+TOKEN_ADM=$(token administrador)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $TOKEN_ADM" \
+  -H 'Content-Type: application/json' \
+  -d '{"nome":"Troca de oleo (demo)","descricao":"Demonstracao","preco":120.00}' \
+  http://localhost:8080/api/servicos                                                                          # 201
+```
+
+As claims mostram `iss` `http://localhost:8081/realms/oficina`, `aud` e `azp` `oficina-api`, `typ` `Bearer` e, em `realm_access.roles`, só o Perfil do usuário; o token não traz e-mail nem nome. Ele vale 15 minutos. Troque `atendente` por `mecanico` ou `administrador` para os outros Perfis. Sem token a API responde `401`; com um Perfil sem permissão, `403`.
+
+### Reset do realm
+
+O realm só é importado na primeira subida. Para reimportar `keycloak/realm-oficina.json` (depois de mudar o arquivo ou `KC_BOOTSTRAP_ADMIN_*`), apague só o schema `keycloak`; o volume do banco e as tabelas da oficina ficam.
+
+```bash
+# Reset do realm (reimporta keycloak/realm-oficina.json). Apaga só o schema keycloak; as tabelas da oficina (schema public) ficam.
+# NUNCA use "docker compose down -v" nem "docker volume rm" do pgdata: apagam o banco da oficina.
+# Vale para os perfis de execução dev e full; não sobe o container app.
+docker compose --profile dev stop keycloak
+docker compose --profile dev exec -T postgres psql -U oficina -d oficina -c 'DROP SCHEMA keycloak CASCADE'
+docker compose --profile dev up -d --wait postgres-init keycloak
+```
+
+O bloco foi medido nos dois perfis de execução: a API continua no ar e aceita os tokens do realm reimportado sem reinício. Com o perfil de execução `full` no ar, o `up` recria o container `postgres` (o volume `pgdata` fica) e a API reconecta sozinha.
+
+### Comportamentos esperados
+
+| Situação | Resultado | O que fazer |
 |---|---|---|
-| `atendente` | `demo123` | `ATENDENTE` — atendimento, clientes, veículos e abertura de OS |
-| `mecanico` | `demo123` | `MECANICO` — diagnóstico, execução e leitura do catálogo |
-| `administrador` | `demo123` | `ADMINISTRADOR` — cadastro de serviços, peças e estoque, além das demais rotas |
+| Senha errada 5 vezes | `invalid_grant` também com a senha certa, até o tempo de espera passar | [desbloqueio](#desbloqueio-de-usuário) |
+| `Authorization: Bearer` inválido numa rota pública | `401` com `WWW-Authenticate: Bearer error="invalid_token", error_description="Token invalido"` | não envie `Authorization` em rota pública |
+| Keycloak parado e a API sem a chave de assinatura em cache | `500` (falha técnica, não credencial inválida) | subir o Keycloak (`docker compose --profile full up -d keycloak`) |
+| Alterou `keycloak/realm-oficina.json` e nada mudou | o realm antigo continua: o import só roda na 1ª subida | [reset do realm](#reset-do-realm) |
+| Alterou `KC_BOOTSTRAP_ADMIN_PASSWORD` depois da 1ª subida | a senha antiga continua valendo: o bootstrap só roda com o `master` vazio | [reset do realm](#reset-do-realm) |
+| Rodou `./mvnw spring-boot:run` sem subir o compose antes | a API não sobe (`password authentication failed for user "oficina_app"` ou `role "oficina_app" does not exist`) | subir o compose antes (passo 1) |
 
-O comando do token está no passo 5. Sem `Authorization`, as rotas administrativas respondem 401. Consulta, aprovação e rejeição públicas da OS ficam em `/api/acompanhamento/ordens-de-servico/{id}` e não usam JWT.
+Mais detalhes da integração em [ADR 0019](docs/adr/0019-integracao-operacional-keycloak.md) e da política de segurança em [ADR 0021](docs/adr/0021-politica-seguranca-identidade.md).
 
 ## Estrutura dos principais diretórios
 
@@ -235,10 +312,11 @@ O comando do token está no passo 5. Sem `Authorization`, as rotas administrativ
 docs/adr/          decisões arquiteturais (ADRs)
 docs/ddd/          linguagem ubíqua, glossário e event storming por fluxo
 docs/diagramas/    diagramas C4 e de domínio
+keycloak/          realm-oficina.json e postgres-init.sql (realm versionado, sem senhas nem chaves) reais: os usuários usam só a senha de demonstração
 src/main/java/br/com/grupo117/oficina/
   atendimento/     contexto core (OS, orçamento) — domain/application/infrastructure
   catalogoestoque/ serviços, peças, estoque — domain/application/infrastructure
-  identidadeacesso/ usuários administrativos, JWT — domain/application/infrastructure
+  identidadeacesso/ identidade por requisição a partir do token do Keycloak, Perfis — domain/application/infrastructure
   infra/           compartilhado: config, security, api
 src/main/resources/db/migration/   migrations Flyway
 src/test/java/     testes unitários e de integração (Testcontainers)
