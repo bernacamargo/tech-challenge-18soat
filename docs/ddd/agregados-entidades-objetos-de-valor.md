@@ -23,7 +23,12 @@ agregado só (ex.: `Peca`) pode ser usado por vários fluxos.
 | 3 | **Veiculo** | Atendimento | Mesmo raciocínio do Cliente: o mesmo veículo (mesma placa) gera **várias** Ordens de Serviço ao longo do tempo (ex.: troca de óleo em janeiro, revisão de freios em junho). Se o veículo fosse parte da OS, não haveria como consultar o histórico de um veículo — um dos problemas que o próprio desafio cita. |
 | 4 | **Peca** | Catálogo/Estoque | Protege a invariante mais sensível do domínio: **o saldo de estoque nunca pode ficar negativo**, e toda reserva/baixa (quadro 3: `Reservar quantidade`, `Dar baixa efetiva`, `Estoque insuficiente`) precisa passar por ela. Fica separada de `OrdemDeServico` de propósito: se a reserva falhar, isso não deve travar a criação da OS na mesma transação — é consistência eventual entre agregados, não atomicidade dentro de um só. |
 | 5 | **Servico** (catálogo) | Catálogo/Estoque | Cadastro de referência (preço, descrição), sem relação de dependência forte com a OS — um serviço pode ser cadastrado, alterado ou descontinuado sem nenhuma OS em andamento ser afetada. |
-| 6 | **UsuarioAdministrativo** | Identidade e Acesso | Contexto totalmente à parte (autenticação JWT para as APIs administrativas); não compartilha nenhuma regra de negócio com a oficina em si. |
+
+> **Identidade e Acesso não tem agregado.** A conta do usuário (login, senha, perfis) vive no
+> Keycloak (ADR 0006); a oficina não persiste nada desse contexto. A cada requisição o domínio
+> monta um `UsuarioAdministrativo` imutável a partir da credencial validada. Sem estado próprio
+> nem invariante transacional a proteger, os tipos do contexto são Objetos de Valor (seção 3) e
+> um contrato (seção 4).
 
 ---
 
@@ -42,7 +47,6 @@ entrada para ler/alterar o agregado.
 - `Veiculo`
 - `Peca`
 - `Servico`
-- `UsuarioAdministrativo`
 
 ### 2.2 Entidades internas
 
@@ -72,3 +76,29 @@ No código (Java/Spring Boot): normalmente `record` e/ou `@Embeddable`; `StatusO
 | `Orcamento` | dentro de `OrdemDeServico` | Gerado automaticamente a partir dos itens; se os itens mudarem, **gera-se um novo cálculo**, nunca se edita o orçamento anterior (preserva histórico e evita inconsistência entre o que foi aprovado e o que está salvo). |
 | `Dinheiro` | usado por `Servico`, `ItemDaOS`, `Orcamento` | Representa um valor monetário com sua própria validação (não aceita negativo); evita espalhar `BigDecimal`/`float` soltos pelo domínio sem nenhuma regra associada. |
 | `QuantidadeReservada` | dentro de `ReservaDeEstoque` | Quantidade + unidade de uma reserva específica; não tem vida própria fora da reserva que a contém. |
+| `Perfil` | dentro de `UsuarioAdministrativo` (Identidade e Acesso) | Enum fechado (ATENDENTE, MECANICO, ADMINISTRADOR, ADR 0006; equivalências no glossário da linguagem ubíqua); reconhece só o nome exato e ignora roles técnicos do Keycloak. Não há "dois ATENDENTE diferentes". |
+| `Credencial` | Identidade e Acesso, entrada da autenticação | É o access token Bearer, tratado como valor opaco: dois tokens com o mesmo valor são a mesma credencial. Rejeita valor ausente ou com espaço e mascara o `toString` para não vazar o token. |
+| `DadosDaCredencial` | Identidade e Acesso, saída de `ValidadorDeCredencial` | Fatos que o provedor afirma sobre o portador (sujeito, login, perfis informados), sem identidade própria nem ciclo de vida; cópia imutável dos perfis. |
+| `UsuarioAdministrativo` | Identidade e Acesso, por requisição | Retrato imutável da identidade autenticada (`sub`, login, perfis da oficina). Não muda de estado na oficina: a conta só muda no Keycloak, e a próxima requisição traz um novo retrato. Exige identificador, login e ao menos um perfil. |
+
+---
+
+## 4. Contratos do domínio
+
+| Contrato | Contexto | Por que fica no `domain` |
+|---|---|---|
+| `ValidadorDeCredencial` | Identidade e Acesso | A issue #4 define o contrato de autenticação no domínio; é um desvio consciente da ADR 0001, que coloca ports na `application`, a ser registrado na ADR de integração operacional com o Keycloak (issue #6). Valida a credencial junto ao provedor e devolve `DadosDaCredencial`. Credencial recusada é `CredencialInvalidaException`; falha do provedor (indisponível, rede) não é credencial inválida e não é convertida. Credencial válida sem perfil da oficina é `UsuarioSemPerfilDaOficinaException`, lançada por `UsuarioAdministrativo`. A implementação com o Keycloak fica na infraestrutura (issue #6). |
+
+---
+
+## 5. Relação com o código — Identidade e Acesso
+
+| Termo | Tipo | Arquivo |
+|---|---|---|
+| Perfil | enum (VO) | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/Perfil.java` |
+| Credencial | record (VO) | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/Credencial.java` |
+| Credencial inválida | exceção | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/CredencialInvalidaException.java` |
+| Dados da credencial | record (VO) | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/DadosDaCredencial.java` |
+| Validador de credencial | interface (contrato) | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/ValidadorDeCredencial.java` |
+| Usuário administrativo | record (VO) | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/UsuarioAdministrativo.java` |
+| Sem perfil da oficina | exceção | `src/main/java/br/com/grupo117/oficina/identidadeacesso/domain/UsuarioSemPerfilDaOficinaException.java` |
