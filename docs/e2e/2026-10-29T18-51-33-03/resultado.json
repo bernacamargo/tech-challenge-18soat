@@ -1,0 +1,218 @@
+{
+  "placa": "ZXW7Q96",
+  "cpf": "79331077963",
+  "cnpj": "19331077900165",
+  "osId": "a11f1ded-e90a-4f74-aba8-5ec2de1d857c",
+  "servicoId": "536d15f9-f3f7-4372-8572-a6b0c4dac922",
+  "pecaId": "ecdb3975-7a08-4914-beb6-b4375ef442d2",
+  "passos": [
+    {
+      "img": "01-servicos-demo.png",
+      "title": "Catálogo de serviços da demonstração",
+      "role": "mecanico",
+      "route": "GET /api/servicos",
+      "status": 200,
+      "body": "[{\"id\":\"11700000-0000-4000-8000-000000000101\",\"nome\":\"[DEMO] Troca de óleo\",\"descricao\":\"Mão de obra para troca de óleo; peças e insumos cobrados separadamente.\",\"preco\":80.50},{\"id\":\"11700000-0000-4000-8000-000000000102\",\"nome\":\"[DEMO] Alinhamento e balanceamento\",\"descricao\":\"Ajuste de alinhamento e balanceamento das rodas.\",\"preco\":120.00},{\"id\":\"11700000-0000-4000-8000-000000000103\",\"nome\":\"[DEMO] Revisão de freios\",\"descricao\":\"Inspeção e manutenção do sistema de freios; peças cobradas separadamente.\",\"preco\":180.00},{\"id\":\"11700000-0000-4000-8000-000000000104\",\"nome\":\"[DEMO] Diagnóstico eletrônico\",\"descricao\":\"Leitura de falhas e diagnóstico com scanner automotivo.\",\"preco\":90.00},{\"id\":\"89aaa593-9ea9-472d-8c14-e0f539908019\",\"nome\":\"E2E Consulta de catalogo\",\"descricao\":\"Somente leitura para a equipe\",\"preco\":45.00}]"
+    },
+    {
+      "img": "02-pecas-demo.png",
+      "title": "Catálogo de peças da demonstração",
+      "role": "atendente",
+      "route": "GET /api/pecas",
+      "status": 200,
+      "body": "[{\"id\":\"11700000-0000-4000-8000-000000000205\",\"nome\":\"[DEMO] Correia sem estoque\",\"descricao\":\"Item com saldo zero para validar recusa de inclusão na OS.\",\"tipo\":\"PECA\",\"precoUnitario\":100.00,\"quantidadeDisponivel\":0,\"quantidadeReservada\":0,\"quantidadeLivre\":0},{\"id\":\"11700000-0000-4000-8000-000000000204\",\"nome\":\"[DEMO] Filtro de ar\",\"descricao\":\"Filtro de ar para veículo de demonstração.\",\"tipo\":\"PECA\",\"precoUnitario\":60.00,\"quantidadeDisponivel\":8,\"quantidadeReservada\":0,\"quantidadeLivre\":8},{\"id\":\"11700000-0000-4000-8000-000000000202\",\"nome\":\"[DEMO] Filtro de óleo\",\"descricao\":\"Filtro de óleo para veículo de demonstração.\",\"tipo\":\"PECA\",\"precoUnitario\":35.00,\"quantidadeDisponivel\":10,\"quantidadeReservada\":0,\"quantidadeLivre\":10},{\"id\":\"11700000-0000-4000-8000-000000000203\",\"nome\":\"[DEMO] Jogo de pastilhas de freio\",\"descricao\":\"Jogo de pastilhas para demonstração de orçamento.\",\"tipo\":\"PECA\",\"precoUnitario\":240.00,\"quantidadeDisponivel\":5,\"quantidadeReservada\":0,\"quantidadeLivre\":5},{\"id\":\"11700000-0000-4000-8000-000000000201\",\"nome\":\"[DEMO] Óleo de motor 5W30 - 1 litro\",\"descricao\":\"Unidade de um litro para demonstração de reserva e baixa.\",\"tipo\":\"INSUMO\",\"precoUnitario\":25.25,\"quantidadeDisponivel\":17,\"quantidadeReservada\":0,\"quantidadeLivre\":17}]"
+    },
+    {
+      "img": "03-cliente-cnpj.png",
+      "title": "Cliente pessoa jurídica",
+      "role": "atendente",
+      "route": "POST /api/clientes",
+      "status": 201,
+      "body": "{\"nome\":\"Oficina Vizinha Ltda\",\"cpfCnpj\":\"19331077900165\",\"email\":\"financeiro@oficina-vizinha.example\"}"
+    },
+    {
+      "img": "04-cliente.png",
+      "title": "Cadastro de cliente",
+      "role": "atendente",
+      "route": "POST /api/clientes",
+      "status": 201,
+      "body": "{\"nome\":\"Ana Ribeiro\",\"cpfCnpj\":\"79331077963\",\"email\":\"ana.ribeiro@exemplo.com\"}"
+    },
+    {
+      "img": "05-clientes.png",
+      "title": "Histórico de clientes",
+      "role": "atendente",
+      "route": "GET /api/clientes",
+      "status": 200,
+      "body": "[{\"nome\":\"Paulo Lima\",\"cpfCnpj\":\"11144477735\",\"email\":\"paulo.lima@exemplo.com\"},{\"nome\":\"Maria Souza\",\"cpfCnpj\":\"52998224725\",\"email\":\"maria.e2e@exemplo.com\"},{\"nome\":\"Oficina Vizinha Ltda\",\"cpfCnpj\":\"19331077900165\",\"email\":\"financeiro@oficina-vizinha.example\"},{\"nome\":\"Ana Ribeiro\",\"cpfCnpj\":\"79331077963\",\"email\":\"ana.ribeiro@exemplo.com\"}]"
+    },
+    {
+      "img": "06-cliente-alterado.png",
+      "title": "Alteração do cliente",
+      "role": "administrador",
+      "route": "PUT /api/clientes/79331077963",
+      "status": 200,
+      "body": "{\"nome\":\"Ana Ribeiro Costa\",\"cpfCnpj\":\"79331077963\",\"email\":\"ana.ribeiro@exemplo.com\"}"
+    },
+    {
+      "img": "07-veiculo.png",
+      "title": "Veículo do cliente",
+      "role": "atendente",
+      "route": "POST /api/veiculos",
+      "status": 201,
+      "body": "{\"placa\":\"ZXW7Q96\",\"marca\":\"Honda\",\"modelo\":\"Civic\",\"ano\":2019,\"cpfCnpjCliente\":\"79331077963\"}"
+    },
+    {
+      "img": "08-veiculo-alterado.png",
+      "title": "Alteração do veículo",
+      "role": "atendente",
+      "route": "PUT /api/veiculos/ZXW7Q96",
+      "status": 200,
+      "body": "{\"placa\":\"ZXW7Q96\",\"marca\":\"Honda\",\"modelo\":\"Civic EX\",\"ano\":2019,\"cpfCnpjCliente\":\"79331077963\"}"
+    },
+    {
+      "img": "09-veiculo-detalhe.png",
+      "title": "Consulta do veículo",
+      "role": "atendente",
+      "route": "GET /api/veiculos/ZXW7Q96",
+      "status": 200,
+      "body": "{\"placa\":\"ZXW7Q96\",\"marca\":\"Honda\",\"modelo\":\"Civic EX\",\"ano\":2019,\"cpfCnpjCliente\":\"79331077963\"}"
+    },
+    {
+      "img": "10-mecanico-clientes-403.png",
+      "title": "Mecânico não consulta clientes",
+      "role": "mecanico",
+      "route": "GET /api/clientes",
+      "status": 403,
+      "body": ""
+    },
+    {
+      "img": "11-mecanico-abre-os-403.png",
+      "title": "Mecânico não abre OS",
+      "role": "mecanico",
+      "route": "POST /api/ordens-de-servico",
+      "status": 403,
+      "body": ""
+    },
+    {
+      "img": "12-os-cliente-existente.png",
+      "title": "OS reaproveita cliente e veículo",
+      "role": "atendente",
+      "route": "POST /api/ordens-de-servico",
+      "status": 201,
+      "body": "{\"id\":\"a11f1ded-e90a-4f74-aba8-5ec2de1d857c\",\"clienteId\":\"79331077963\",\"veiculoId\":\"ZXW7Q96\",\"status\":\"RECEBIDA\",\"finalizadaEm\":null,\"itens\":[],\"orcamento\":null,\"iniciadaEm\":null,\"rejeicaoOrcamento\":null}"
+    },
+    {
+      "img": "13-cliente-preservado.png",
+      "title": "Nome do cliente preservado na abertura",
+      "role": "atendente",
+      "route": "GET /api/clientes/79331077963",
+      "status": 200,
+      "body": "{\"nome\":\"Ana Ribeiro Costa\",\"cpfCnpj\":\"79331077963\",\"email\":\"ana.ribeiro@exemplo.com\"}"
+    },
+    {
+      "img": "14-lista-os.png",
+      "title": "Lista de ordens de serviço",
+      "role": "mecanico",
+      "route": "GET /api/ordens-de-servico",
+      "status": 200,
+      "body": "[{\"id\":\"5fcec277-0844-4680-ad96-d360dec1dbc9\",\"clienteId\":\"52998224725\",\"veiculoId\":\"DEF2E34\",\"status\":\"AGUARDANDO_APROVACAO\",\"finalizadaEm\":null,\"itens\":[{\"id\":\"4c4e4d20-5898-47ff-88a9-058157751ca9\",\"catalogoId\":\"11700000-0000-4000-8000-000000000202\",\"tipo\":\"PECA\",\"descricao\":\"[DEMO] Filtro de óleo\",\"quantidade\":1,\"precoUnitario\":35.00,\"subtotal\":35.00}],\"orcamento\":{\"total\":35.00},\"iniciadaEm\":null,\"rejeicaoOrcamento\":{\"momento\":\"2026-10-29T20:16:25.200289Z\",\"motivo\":\"Preço acima do esperado\"}},{\"id\":\"99a0b38d-de08-4173-b204-50343b6e326b\",\"clienteId\":\"52998224725\",\"veiculoId\":\"ABC1D23\",\"status\":\"ENTREGUE\",\"finalizadaEm\":\"2026-10-29T20:16:22.101142Z\",\"itens\":[{\"id\":\"8f9f2e38-3f29-4203-8625-cf2e73e448b9\",\"catalogoId\":\"11700000-0000-4000-8000-000000000101\",\"tipo\":\"SERVICO\",\"descricao\":\"[DEMO] Troca de óleo\",\"quantidade\":1,\"precoUnitario\":80.50,\"subtotal\":80.50},{\"id\":\"794ebad5-4e11-4656-8ac5-2b5370078f22\",\"catalogoId\":\"11700000-0000-4000-8000-000000000201\",\"tipo\":\"PECA\",\"descricao\":\"[DEMO] Óleo de motor 5W30 - 1 litro\",\"quantidade\":3,\"precoUnitario\":25.25,\"subtotal\":75.75}],\"orcamento\":{\"total\":156.25},\"iniciadaEm\":\"2026-10-29T20:16:20.363446Z\",\"rejeicaoOrcamento\":null},{\"id\":\"a11f1ded-e90a-4f74-aba8-5ec2de1d857c\",\"clienteId\":\"79331077963\",\"veiculoId\":\"ZXW7Q96\",\"status\":\"RECEBIDA\",\"finalizadaEm\":null,\"itens\":[],\"orcamento\":null,\"iniciadaEm\":null,\"rejeicaoOrcamento\":null},{\"id\":\"c09ebed6-3dfd-4fc6-a771-37a858e6cbb8\",\"clienteId\":\"11144477735\",\"veiculoId\":\"MNO5H89\",\"status\":\"EM_EXECUCAO\",\"finalizadaEm\":null,\"itens\":[{\"id\":\"e79c64d2-9380-4d7c-8942-56e99a0d2de2\",\"catalogoId\":\"11700000-0000-4000-8000-000000000101\",\"tipo\":\"SERVICO\",\"descricao\":\"[DEMO] Troca de óleo\",\"quantidade\":1,\"precoUnitario\":80.50,\"subtotal\":80.50}],\"orcamento\":{\"total\":80.50},\"iniciadaEm\":\"2026-10-29T20:16:03.717098Z\",\"rejeicaoOrcamento\":null}]"
+    },
+    {
+      "img": "15-atendente-conclusao-403.png",
+      "title": "Atendente não conclui a execução",
+      "role": "atendente",
+      "route": "POST /api/ordens-de-servico/a11f1ded-e90a-4f74-aba8-5ec2de1d857c/conclusao",
+      "status": 403,
+      "body": ""
+    },
+    {
+      "img": "16-mecanico-entrega-403.png",
+      "title": "Mecânico não registra a entrega",
+      "role": "mecanico",
+      "route": "POST /api/ordens-de-servico/a11f1ded-e90a-4f74-aba8-5ec2de1d857c/entrega",
+      "status": 403,
+      "body": ""
+    },
+    {
+      "img": "17-conclusao-cedo-409.png",
+      "title": "Conclusão fora do estado Em execução",
+      "role": "mecanico",
+      "route": "POST /api/ordens-de-servico/a11f1ded-e90a-4f74-aba8-5ec2de1d857c/conclusao",
+      "status": 409,
+      "body": "{\"mensagem\":\"Transição de RECEBIDA para FINALIZADA não permitida\"}"
+    },
+    {
+      "img": "18-cliente-duplicado-409.png",
+      "title": "Cliente não duplica",
+      "role": "atendente",
+      "route": "POST /api/clientes",
+      "status": 409,
+      "body": "{\"mensagem\":\"Cliente ja cadastrado: 79331077963\"}"
+    },
+    {
+      "img": "19-publico-404.png",
+      "title": "Acompanhamento de OS inexistente",
+      "role": "público",
+      "route": "GET /api/acompanhamento/ordens-de-servico/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "status": 404,
+      "body": "{\"mensagem\":\"Ordem de serviço não encontrada: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\"}"
+    },
+    {
+      "img": "20-publico-400.png",
+      "title": "Acompanhamento com identificador inválido",
+      "role": "público",
+      "route": "GET /api/acompanhamento/ordens-de-servico/nao-e-uuid",
+      "status": 400,
+      "body": "{\"mensagem\":\"Method parameter 'id': Failed to convert value of type 'java.lang.String' to required type 'java.util.UUID'; Invalid UUID string: nao-e-uuid\"}"
+    },
+    {
+      "img": "21-servico.png",
+      "title": "Cadastro de serviço",
+      "role": "administrador",
+      "route": "POST /api/servicos",
+      "status": 201,
+      "body": "{\"id\":\"536d15f9-f3f7-4372-8572-a6b0c4dac922\",\"nome\":\"Revisao de suspensao\",\"descricao\":\"Servico do projeto\",\"preco\":210.00}"
+    },
+    {
+      "img": "22-servico-alterado.png",
+      "title": "Alteração de preço do serviço",
+      "role": "administrador",
+      "route": "PUT /api/servicos/536d15f9-f3f7-4372-8572-a6b0c4dac922",
+      "status": 200,
+      "body": "{\"id\":\"536d15f9-f3f7-4372-8572-a6b0c4dac922\",\"nome\":\"Revisao de suspensao\",\"descricao\":\"Servico do projeto ajustado\",\"preco\":230.00}"
+    },
+    {
+      "img": "23-peca.png",
+      "title": "Cadastro de peça com saldo inicial",
+      "role": "administrador",
+      "route": "POST /api/pecas",
+      "status": 201,
+      "body": "{\"id\":\"ecdb3975-7a08-4914-beb6-b4375ef442d2\",\"nome\":\"Lampada do farol\",\"descricao\":\"Peca do projeto\",\"tipo\":\"PECA\",\"precoUnitario\":40.00,\"quantidadeDisponivel\":4,\"quantidadeReservada\":0,\"quantidadeLivre\":4}"
+    },
+    {
+      "img": "24-entrada.png",
+      "title": "Entrada de estoque",
+      "role": "administrador",
+      "route": "POST /api/pecas/ecdb3975-7a08-4914-beb6-b4375ef442d2/entradas",
+      "status": 200,
+      "body": "{\"id\":\"ecdb3975-7a08-4914-beb6-b4375ef442d2\",\"nome\":\"Lampada do farol\",\"descricao\":\"Peca do projeto\",\"tipo\":\"PECA\",\"precoUnitario\":40.00,\"quantidadeDisponivel\":10,\"quantidadeReservada\":0,\"quantidadeLivre\":10}"
+    },
+    {
+      "img": "25-peca-saldo.png",
+      "title": "Saldo depois da entrada",
+      "role": "atendente",
+      "route": "GET /api/pecas/ecdb3975-7a08-4914-beb6-b4375ef442d2",
+      "status": 200,
+      "body": "{\"id\":\"ecdb3975-7a08-4914-beb6-b4375ef442d2\",\"nome\":\"Lampada do farol\",\"descricao\":\"Peca do projeto\",\"tipo\":\"PECA\",\"precoUnitario\":40.00,\"quantidadeDisponivel\":10,\"quantidadeReservada\":0,\"quantidadeLivre\":10}"
+    },
+    {
+      "img": "26-mecanico-entrada-403.png",
+      "title": "Mecânico não dá entrada no estoque",
+      "role": "mecanico",
+      "route": "POST /api/pecas/ecdb3975-7a08-4914-beb6-b4375ef442d2/entradas",
+      "status": 403,
+      "body": ""
+    }
+  ]
+}

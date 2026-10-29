@@ -4,6 +4,8 @@ Execução do sistema da oficina no commit `1a51b79793d39620f435ad55844ae7be81d2
 
 Resultado: **os nove cenários passaram.**
 
+Cadastro avulso de cliente e veículo, listagens, entrada de estoque bem-sucedida e os papéis restantes do ciclo estão na execução das [18:51](../2026-10-29T18-51-33-03/evidencias.md) do mesmo dia.
+
 ## Ambiente
 
 ```bash
