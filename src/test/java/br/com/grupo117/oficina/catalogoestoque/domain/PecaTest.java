@@ -90,6 +90,29 @@ class PecaTest {
     }
 
     @Test
+    void rejeitaOverflowSemAlterarSaldoReservasOuEventos() {
+        Peca peca = filtroDeOleoCom(7);
+        peca.reservar(OS_ID, 2);
+        peca.limparEventos();
+
+        assertThrows(QuantidadeInvalidaException.class, () -> peca.reabastecer(Integer.MAX_VALUE));
+        assertEquals(7, peca.quantidadeDisponivel());
+        assertEquals(2, peca.quantidadeReservada());
+        assertTrue(peca.eventos().isEmpty());
+    }
+
+    @Test
+    void aceitaEntradaExatamenteNoLimiteInteiro() {
+        Peca peca = filtroDeOleoCom(7);
+        peca.reabastecer(Integer.MAX_VALUE - 7);
+        assertEquals(Integer.MAX_VALUE, peca.quantidadeDisponivel());
+        assertEquals(1, peca.eventos().size());
+        assertThrows(QuantidadeInvalidaException.class, () -> peca.reabastecer(1));
+        assertEquals(Integer.MAX_VALUE, peca.quantidadeDisponivel());
+        assertEquals(1, peca.eventos().size());
+    }
+
+    @Test
     void rejeitaReabastecimentoComQuantidadeZeroOuNegativa() {
         Peca peca = filtroDeOleoCom(2);
 

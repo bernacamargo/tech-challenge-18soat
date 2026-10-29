@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
-public record OrdemDeServicoRequest(@NotBlank String documento, @NotBlank String nome,
-        @NotBlank String placa, @NotBlank String marca, @NotBlank String modelo, @NotNull Integer ano,
+public record OrdemDeServicoRequest(@NotBlank String documento, @NotBlank @Size(max = 150) String nome,
+        @NotBlank String placa, @NotBlank @Size(max = 80) String marca, @NotBlank @Size(max = 80) String modelo, @NotNull Integer ano,
         UUID servicoId, UUID pecaId, Integer quantidade,
         @Email @Size(max = 254)
         @Pattern(regexp = "[^\\s@<>]++@[^\\s@<>.]++(?:\\.[^\\s@<>.]++)++")

@@ -7,6 +7,8 @@ import br.com.grupo117.oficina.infra.security.JwtTestSupport;
 import java.math.BigDecimal;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -66,16 +68,27 @@ class ServicoApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
-    @Test
-    void mecanicoNaoGerenciaServicos() {
-        ResponseEntity<String> resposta = restTemplate.exchange(
-                "/api/servicos",
-                HttpMethod.GET,
-                new HttpEntity<>(headersComPapel("MECANICO")),
-                String.class
-        );
-
-        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    @ParameterizedTest
+    @ValueSource(strings = {"MECANICO", "ATENDENTE"})
+    void equipeConsultaCatalogoSemPermissaoDeEscrita(String papel) {
+        var criado = restTemplate.exchange("/api/servicos", HttpMethod.POST,
+                new HttpEntity<>(Map.of("nome", "Revisao", "preco", 80), headersComPapel("ADMINISTRADOR")),
+                ServicoResponse.class);
+        assertThat(criado.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        var id = criado.getBody().id();
+        var headers = headersComPapel(papel);
+        assertThat(restTemplate.exchange("/api/servicos", HttpMethod.GET,
+                new HttpEntity<>(headers), ServicoResponse[].class).getBody())
+                .extracting(ServicoResponse::id).contains(id);
+        assertThat(restTemplate.exchange("/api/servicos/" + id, HttpMethod.GET,
+                new HttpEntity<>(headers), ServicoResponse.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        var dados = new HttpEntity<>(Map.of("nome", "Alterado", "preco", 90), headers);
+        assertThat(restTemplate.exchange("/api/servicos", HttpMethod.POST, dados, String.class).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(restTemplate.exchange("/api/servicos/" + id, HttpMethod.PUT, dados, String.class).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(restTemplate.exchange("/api/servicos/" + id, HttpMethod.DELETE,
+                new HttpEntity<>(headers), String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     private static HttpHeaders headersComPapel(String papel) {

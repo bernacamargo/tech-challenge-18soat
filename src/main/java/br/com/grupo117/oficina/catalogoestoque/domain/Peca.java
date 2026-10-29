@@ -84,6 +84,9 @@ public final class Peca {
         if (quantidade <= 0) {
             throw new QuantidadeInvalidaException("Quantidade de entrada deve ser maior que zero");
         }
+        if (quantidade > Integer.MAX_VALUE - quantidadeDisponivel) {
+            throw new QuantidadeInvalidaException("Entrada excede o limite de quantidade em estoque");
+        }
         quantidadeDisponivel += quantidade;
         eventos.add(new EstoqueReabastecido(id, quantidade, Instant.now()));
     }
