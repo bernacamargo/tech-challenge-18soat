@@ -208,7 +208,7 @@
     {
       "id": 5,
       "title": "Latência p95 por rota",
-      "description": "95% das respostas terminam até este tempo estimado. Sem tráfego pode aparecer sem dados. Não mede a execução de serviços da oficina.",
+      "description": "Tempo médio de execução no percentil 95: 95% das respostas de cada rota terminam até este tempo. Medição aceita pelo professor da Fase 1 (ADR 0022). Sem tráfego pode aparecer sem dados.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -248,7 +248,7 @@
     {
       "id": 6,
       "title": "Latência média por rota",
-      "description": "",
+      "description": "Tempo médio de execução dos serviços: média do tempo das requisições de cada rota. Medição aceita pelo professor da Fase 1 (ADR 0022).",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",

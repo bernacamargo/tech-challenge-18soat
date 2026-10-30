@@ -2,15 +2,17 @@
 
 - Status: Proposto
 - Data: 2026-10-24
-- Contexto: infraestrutura inicial de observabilidade, sem implementação da issue #39
+- Contexto: infraestrutura inicial de observabilidade
 
 > A coleta e o provisionamento posteriores estão definidos no [ADR 0016](0016-metricas-tecnicas-prometheus.md).
+> O tempo médio de execução está no [ADR 0022](0022-tempo-medio-execucao-grafana.md).
 
 ## Contexto
 
 O grupo precisa disponibilizar o Grafana de forma reproduzível para desenvolvimento e
-avaliação. A definição e implementação da métrica de tempo médio de execução dos serviços
-ficará para uma etapa posterior. Instalar a interface não implica coletar métricas da aplicação.
+avaliação. Nesta fatia a interface sobe sem coleta. A métrica de tempo médio de execução
+foi definida depois, no ADR 0022, como a latência das rotas. Instalar a interface não implica
+coletar métricas da aplicação.
 
 ## Decisão
 
@@ -40,7 +42,8 @@ exposição de endpoints Actuator adicionais.
 O volume precisa ser preservado para conservar os metadados. A configuração de senha inicial
 é usada na criação do administrador; mudar a variável não altera um usuário já persistido.
 Credenciais locais de demonstração são documentadas; outros ambientes exigem configuração própria.
-O serviço isolado ainda não demonstra métricas reais nem encerra a issue #39.
+O serviço isolado desta fatia ainda não demonstra métricas reais. A coleta veio no ADR 0016
+e o tempo médio de execução no ADR 0022.
 
 ## Referências
 

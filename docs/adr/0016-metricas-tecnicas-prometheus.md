@@ -3,11 +3,14 @@
 - Status: Proposto
 - Data: 2026-10-24
 
+> O tempo médio de execução dos serviços está no [ADR 0022](0022-tempo-medio-execucao-grafana.md):
+> latência média e p95 por rota deste dashboard, com aval do professor da Fase 1.
+
 ## Contexto
 
 O Grafana do ADR 0015 precisa de uma fonte de dados reproduzível para demonstrar saúde e
-desempenho da API. O Actuator já está presente. A duração de serviços da oficina (issue #39)
-não faz parte desta entrega.
+desempenho da API. O Actuator já está presente. A duração de cada OS entre início e
+finalização fica de fora desta coleta.
 
 ## Decisão
 
@@ -36,8 +39,9 @@ porta de management precisa aceitar conexões da bridge Docker, portanto usar ap
 ambiente local confiável. Não habilitar essa exposição em ambiente público sem controle
 adicional de rede/autenticação.
 
-O dashboard apresenta HTTP, JVM e pool Hikari; não monitora todo o PostgreSQL nem adiciona
-logs, tracing, alertas, métricas de negócio ou tempo médio da execução de OS.
+O dashboard apresenta HTTP, JVM e pool Hikari. A latência média e o p95 por rota são o
+tempo médio de execução dos serviços (ADR 0022). Não monitora todo o PostgreSQL nem adiciona
+logs, tracing ou alertas. `iniciada_em` e `finalizada_em` continuam só na OS.
 Esta decisão complementa a instalação inicial do ADR 0015.
 
 ## Referências

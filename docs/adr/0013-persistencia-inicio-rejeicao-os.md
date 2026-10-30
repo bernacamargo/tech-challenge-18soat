@@ -29,8 +29,9 @@ mesmo para escrita direta no banco.
 
 Manter colunas nulas para OS legadas, inclusive finalizadas/entregues, sem inventar instante de
 início, rejeição ou orçamento. Os métodos de restauração anteriores continuam compatíveis.
-As métricas de duração por observabilidade deverão tratar registros sem início conhecido;
-esta entrega não implementa cálculo nem endpoint de tempo médio.
+`iniciada_em` e `finalizada_em` registram a duração de uma OS e não alimentam o tempo médio.
+Esta entrega não implementa cálculo nem endpoint dessa duração. O tempo médio de execução
+dos serviços é a latência das rotas no Grafana (ADR 0022).
 
 Reconstituir o agregado com os dados completos sem executar ações de aprovação, rejeição,
 transições ou baixa de estoque. O mapeamento normaliza os novos instantes para microssegundos

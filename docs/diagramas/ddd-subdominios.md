@@ -20,7 +20,7 @@ flowchart TB
                 direction TB
                 EST["<b>Catálogo e Estoque</b><br/>serviços · peças · insumos<br/>saldo · reserva · baixa"]
                 CLI["<b>Clientes e Veículos</b><br/>cadastro · histórico<br/>validação CPF/CNPJ e placa"]
-                IND["<b>Indicadores Operacionais</b><br/>tempo médio de execução"]
+                IND["<b>Indicadores Operacionais</b><br/>latência média e p95 das rotas"]
                 EST ~~~ CLI ~~~ IND
             end
             subgraph GEN["GENÉRICO: comum a qualquer empresa"]
@@ -56,7 +56,7 @@ Classificação feita com o critério de [Critério de classificação](ddd-crit
 | Gestão de Ordens de Serviço | Principal | É o diferencial da oficina (acompanhamento em tempo real e aprovação pelo cliente) e resolve as dores centrais do negócio. Lógica complexa: regras de transição de status e de orçamento. | Atendimento (Core) |
 | Catálogo e Estoque | Suporte | Necessário para montar o orçamento, mas não diferencia a oficina. Lógica relativamente simples (CRUD com reserva e baixa). Poderia ser um ERP pronto, mas a reserva está acoplada ao fluxo da OS. | Catálogo e Estoque |
 | Clientes e Veículos | Suporte | Cadastro e histórico, basicamente CRUD com validação de CPF/CNPJ e placa. Sem vantagem competitiva. Implementado no contexto Atendimento (`atendimento/application`: `CadastrarCliente`, `CadastrarVeiculo` e demais casos de uso). | Atendimento |
-| Indicadores Operacionais | Suporte | Cálculo derivado dos dados da OS (tempo médio de execução), sem regra própria complexa. | Atendimento |
+| Indicadores Operacionais | Suporte | Tempo médio de execução: latência média e p95 das rotas da API, no Grafana (ADR 0022). Sem agregação da duração de cada OS. | Observabilidade |
 | Identidade e Acesso | Genérico | Toda empresa tem; existe solução pronta e não diferencia o negócio. Resolvido com o Keycloak self-hosted (ADR 0006/0019): o Keycloak guarda as contas e emite o access token, e a oficina só valida o token e monta a identidade por requisição; a app não guarda usuário nem senha. | Identidade e Acesso |
 | Notificações | Genérico | Commodity; pode usar serviço pronto de e-mail ou push. A notificação de orçamento está implementada no contexto Atendimento (port `NotificacaoPort`, fila persistida e envio SMTP, #80–#82, ADR 0017), com o MailPit como SMTP local; avisos de status ainda não são enviados. | Atendimento (port `NotificacaoPort`) |
 
