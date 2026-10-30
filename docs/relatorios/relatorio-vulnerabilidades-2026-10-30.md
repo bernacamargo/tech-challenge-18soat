@@ -12,8 +12,10 @@
 > **Resumo executivo:** a análise estática do SonarCloud no branch `main` não encontrou
 > **nenhuma vulnerabilidade, security hotspot, bug ou code smell** — ratings de segurança e
 > confiabilidade "A". A cobertura é de 96,6%. A análise de CVEs de dependências
-> (OWASP Dependency-Check) está **bloqueada por ausência de NVD API key** — a falha e o
-> plano para destravá-la estão detalhados na [seção 4](#4-dependências-e-cves-owasp-dependency-check).
+> (OWASP Dependency-Check), destravada no mesmo dia com a `NVD_API_KEY`, identificou
+> **70 ocorrências de CVEs (16 CRITICAL, 18 HIGH, 33 MEDIUM, 3 LOW)**, concentradas nas
+> versões atuais de Spring Framework, Tomcat e Spring Security — detalhes e avaliação de
+> aplicabilidade na [seção 4](#4-dependências-e-cves-owasp-dependency-check).
 
 ## 1. Qualidade Gate e métricas gerais
 
@@ -47,32 +49,57 @@ Dashboard: <https://sonarcloud.io/dashboard?id=bernacamargo_tech-challenge-18soa
 
 ## 4. Dependências e CVEs (OWASP Dependency-Check)
 
-### Status: bloqueado — ausência de NVD API key
+### Histórico: bloqueio destravado no mesmo dia
 
-O OWASP Dependency-Check 13 **exige uma NVD API key** (gratuita) para atualizar a base de
-CVEs. Sem a chave, a análise é abortada com erro fatal antes de avaliar as dependências:
+A ODC 13 **exige uma NVD API key** (gratuita) para atualizar a base de CVEs — sem ela a
+análise aborta com `NvdApiException: Invalid API Key, length of 0` e, com
+`failOnError=false`, o job ficava verde **sem gerar relatório** (verificado nas execuções
+até 2026-10-30, ex.: run `40982184835`). A chave foi solicitada, ativada e configurada como
+secret `NVD_API_KEY` no repositório em 2026-10-30, destravando a análise:
 
-```
-[ERROR] Error updating the NVD Data
-Caused by: io.github.jeremylong.openvulnerability.client.nvd.NvdApiException:
-    Invalid API Key, length of 0 too short to provided a masked partial key
-[ERROR] Unable to continue dependency-check analysis.
-```
+| Run | Data (UTC) | Duração | Resultado |
+|---|---|---|---|
+| [`41120486176`](https://github.com/bernacamargo/tech-challenge-18soat/actions/runs/41120486176) | 2026-10-30 20:05 | 47min | ✅ Primeiro relatório gerado (base NVD completa, cache de 116 MB salvo) |
+| [`41127018217`](https://github.com/bernacamargo/tech-challenge-18soat/actions/runs/41127018217) | 2026-10-30 20:55 | 36s | ✅ Re-execução com cache NVD (HTML + JSON publicados como artifact) |
 
-Reproduzido localmente e no CI (run `40982184835` do workflow `security`, 2026-10-30
-00:50 UTC). Consequências atuais:
+### Resultado do scan (dependências do commit `cd80c68`)
 
-1. **Nenhum relatório de CVE é gerado** — o passo de upload do artifact
-   (`dependency-check-report.html`) registra "No files were found" e não publica nada.
-2. **O job `security` fica verde de forma enganosa**: o `security.yml` usa
-   `-DfailOnError=false`, então a falha de atualização da NVD não reprovou o build.
+**70 ocorrências de CVEs** (a mesma CVE pode aparecer em mais de um artefato) —
+**16 CRITICAL, 18 HIGH, 33 MEDIUM, 3 LOW**. Relatório completo:
+artifact `vulnerability-report` da run [`41127018217`](https://github.com/bernacamargo/tech-challenge-18soat/actions/runs/41127018217)
+(`dependency-check-report.html` / `.json`).
 
-### Ações para destravar (prioridade alta)
+**Distribuição por dependência afetada:**
 
-1. Solicitar a chave gratuita em <https://nvd.nist.gov/developers/request-an-api-key>.
-2. Configurá-la como secret `NVD_API_KEY` no repositório GitHub.
-3. Passar `-DnvdApiKey=$NVD_API_KEY` nos workflows `security.yml` e `release.yml`
-   (a automação de relatório por release já inclui esse suporte).
+| Dependência (versão) | Ocorrências | Observação |
+|---|---|---|
+| Spring Framework 6.2.19 | 17 | Inclui **CVE-2026-47884 (CVSS 9.8): SSRF/RCE via `XsltView` em Spring MVC** — ver avaliação abaixo |
+| Apache Tomcat (embedded) 10.1.55 | 15 | Maioria em recursos não usados (DIGEST/FORM auth, rewrite valve, clustering) |
+| DOMPurify 3.3.2 (webjar do Swagger UI) | 14 | XSS bypasses (RetireJS); risco contido à UI de documentação |
+| Spring Security 6.5.11 | 6 | Maioria em recursos não usados (LDAP embutido, WebAuthn, DPoP) |
+| log4j-api 2.24.3 | 4 | Saída XML/JSON malformada em cenários específicos |
+| commons-lang3 3.17.0 | 1 | CVE-2025-48924 (recursão infinita) |
+| jackson-databind 2.21.4 | 1 | CVE-2026-54515 |
+| Spring Data JPA 3.5.13 | 1 | CVE-2026-47834 (bypass de validação no `Sort`) |
+| PostgreSQL JDBC 42.7.11 | 1 | CVE-2026-54291 (downgrade de channel binding) |
+
+**Avaliação de aplicabilidade (leitura do grupo, a confirmar em revisão):**
+
+1. **CVE-2026-47884 (Spring Framework, CVSS 9.8)** é a de maior atenção: exige `XsltView`
+   com mapeamento `/**` e view name não fixado — a aplicação é uma API REST sem views JSP/XSLT,
+   então o vetor **provavelmente não se aplica**, mas a severidade recomenda **atualizar o
+   Spring Boot para a versão patch** que traz Spring Framework ≥ 6.2.20, Tomcat ≥ 10.1.58 e
+   Spring Security ≥ 6.5.12 (fecha em lote a maioria das CRITICAL/HIGH).
+2. As demais CRITICAL de Tomcat/Spring Security atingem componentes **não configurados** na
+   aplicação (autenticação é por token JWT via Keycloak, não DIGEST/FORM; não há LDAP embutido,
+   WebFlux, RSocket nem clustering).
+3. DOMPurify: presente apenas como dependência do Swagger UI; risco de XSS na própria UI de
+   documentação, sem acesso a dados da aplicação.
+
+### Correção recomendada
+
+- Atualizar `spring-boot-starter-parent` para o patch mais recente da 3.5.x e re-executar o
+  scan para validar a queda das ocorrências.
 
 ## 5. Configuração do Sonar no CI (contexto)
 
@@ -87,10 +114,11 @@ Reproduzido localmente e no CI (run `40982184835` do workflow `security`, 2026-1
 
 | # | Ação | Prioridade |
 |---|---|---|
-| 1 | Configurar `NVD_API_KEY` e destravar a análise de CVEs (seção 4) | Alta |
-| 2 | Incluir o relatório de vulnerabilidades no pipeline de release (automação `release.yml`) | Média |
-| 3 | Manter o cadência semanal do `security.yml` (cron de segunda-feira) e verificar que o artifact passa a ser publicado | Média |
-| 4 | Revisar security hotspots futuros cedo (o "Sonar way" não reprova por hotspot; revisão manual é responsabilidade do time) | Contínua |
+| 1 | Atualizar o Spring Boot (3.5.x patch mais recente) para absorver as correções de Spring Framework/Tomcat/Spring Security (seção 4) | Alta |
+| 2 | Revisar caso a caso as ocorrências restantes após o upgrade e documentar as que não se aplicam (suppression file do Dependency-Check) | Média |
+| 3 | Incluir o relatório de vulnerabilidades no pipeline de release (automação `release.yml`) | Média |
+| 4 | Manter a cadência semanal do `security.yml` (cron de segunda-feira) e verificar que o artifact HTML+JSON é publicado | Média |
+| 5 | Revisar security hotspots futuros cedo (o "Sonar way" não reprova por hotspot; revisão manual é responsabilidade do time) | Contínua |
 
 ## 7. Metodologia e reprodutibilidade
 
@@ -106,5 +134,6 @@ curl -s "https://sonarcloud.io/api/hotspots/search?projectKey=$P&branch=main&ps=
 curl -s "https://sonarcloud.io/api/qualitygates/get_by_project?project=$P&organization=bernacamargo"
 ```
 
-Dependency-Check reproduzido localmente com `./mvnw -B -DskipTests
-dependency-check:check -DfailOnError=false` (saída na seção 4).
+Dependency-Check: bloqueio reproduzido localmente (seção 4 — histórico); scan efetivo
+executado pelo workflow `security` (runs `41120486176` e `41127018217`) com a
+`NVD_API_KEY`, publicando os relatórios HTML e JSON como artifact `vulnerability-report`.
