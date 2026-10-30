@@ -61,6 +61,8 @@ flowchart TB
   etapaExecucao --> etapaConsulta
 ```
 
+> **Leitura das setas entre etapas.** As setas grossas ligam etapas, não post-its: o Mermaid só empilha as etapas assim. A passagem da etapa 3 para a 4 vale **só para o caminho da aprovação** (`Aprova OS` → `Orçamento aprovado` → `Aprovação libera execução automaticamente`). `Rejeita OS` **encerra o fluxo do orçamento** e não leva à execução. O quadro do Miro não desenha o evento seguinte à rejeição; a [ADR 0018](../../../adr/0018-cancelamento-notificacao-orcamento-decidido.md) trata do que acontece com as solicitações de aprovação depois da decisão.
+
 ## Ciclo de status
 
 ```
