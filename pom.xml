@@ -29,9 +29,12 @@
         <sonar.organization>bernacamargo</sonar.organization>
         <sonar.projectKey>bernacamargo_tech-challenge-18soat</sonar.projectKey>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-        <!-- Tooling de CI (workflows/scripts) nao e codigo de produto: fora da analise,
-             para nao derrubar o new_coverage do quality gate com linhas sem teste. -->
-        <sonar.exclusions>.github/**</sonar.exclusions>
+        <!-- Analise restrita ao layout Maven: o escopo do Sonar e o codigo de
+             produto (src/main/java) e os testes (src/test/java). Tooling de CI,
+             scripts e docs ficam fora por padrao — whitelist, sem lista de
+             exclusoes para manter a medida que pastas novas surgirem. -->
+        <sonar.sources>src/main/java</sonar.sources>
+        <sonar.tests>src/test/java</sonar.tests>
     </properties>
 
     <dependencies>
