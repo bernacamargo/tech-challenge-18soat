@@ -54,14 +54,15 @@ listening on a separate port`.
 | Tempo desde inicialização | Uptime do processo Java |
 | Requisições por rota | Taxa por segundo, agrupada por método e template da rota |
 | Respostas por status | 4xx incluem validações e acesso negado; 5xx são falhas internas |
-| Latência p95 e média | Tempo HTTP em segundos; p95 estimado cobre 95% das respostas |
+| Latência p95 e média | Tempo médio de execução dos serviços: média e p95 do tempo HTTP de cada rota, em segundos ([ADR 0022](adr/0022-tempo-medio-execucao-grafana.md)) |
 | Memória heap / CPU | Recursos utilizados pela JVM/processo Java |
 | Conexões do pool | Ocupadas, livres e limite do Hikari da aplicação |
 | Threads esperando conexão | Espera por conexão disponível no pool |
 
-Os painéis não medem o tempo de execução dos serviços da oficina (issue #39). Não há logs,
-tracing, alertas ou métricas de negócio nesta entrega. Os arquivos JSON são a fonte de verdade:
-para alterar o dashboard padrão, edite-os e versione a mudança, em vez de salvar pela UI.
+A latência média e o p95 por rota são o tempo médio de execução dos serviços
+([ADR 0022](adr/0022-tempo-medio-execucao-grafana.md)). Não há logs, tracing nem alertas
+nesta entrega. Os arquivos JSON são a fonte de verdade: para alterar o dashboard padrão,
+edite-os e versione a mudança, em vez de salvar pela UI.
 
 ## Operação
 
@@ -90,8 +91,9 @@ Os volumes `grafana_data` e `prometheus_data` preservam metadados e séries apó
 A retenção Prometheus é limitada a 7 dias ou 1 GB. Não use `docker compose down -v` para parar:
 isso também pode apagar os dados PostgreSQL do projeto.
 
-Decisões: [ADR 0015](adr/0015-grafana-local-docker.md) e
-[ADR 0016](adr/0016-metricas-tecnicas-prometheus.md).
+Decisões: [ADR 0015](adr/0015-grafana-local-docker.md),
+[ADR 0016](adr/0016-metricas-tecnicas-prometheus.md) e
+[ADR 0022](adr/0022-tempo-medio-execucao-grafana.md).
 
 ## Evidências locais — 2026-10-24
 

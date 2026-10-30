@@ -17,7 +17,7 @@
 - **Atendente**: recebe o cliente, identifica cliente/veículo, cria a OS, envia o orçamento.
 - **Mecânico**: executa diagnóstico e serviços, informa peças necessárias e entrega do veículo.
 - **Administrador**: administra o catálogo (serviços, peças, estoque). As contas de usuário (criação, senha, perfis) são administradas no console do Keycloak (issue #6), não pela API da oficina.
-- **Sistema**: aplica transições de status automáticas, gera orçamento, calcula tempo médio de execução.
+- **Sistema**: aplica transições de status automáticas, gera orçamento e expõe o tempo médio de execução como latência das rotas.
 
 ## Agregados e entidades
 
@@ -68,7 +68,7 @@
 - **OS (Ordem de Serviço)**: registro que acompanha o atendimento do veículo do cliente.
 - **Orçamento**: somatório de serviços e peças da OS, enviado ao cliente para aprovação.
 - **Reserva de estoque**: quantidade de peça separada para uma OS antes da execução.
-- **Tempo médio de execução**: métrica calculada pelo sistema entre OS iniciada e finalizada.
+- **Tempo médio de execução**: latência média e p95 das rotas da API, observadas no Grafana. O professor da Fase 1 aceitou essa medição ([ADR 0022](../adr/0022-tempo-medio-execucao-grafana.md)). `iniciada_em` e `finalizada_em` registram uma execução individual da OS e ficam fora dessa média.
 - **Credencial** (`Credencial`): prova de identidade do usuário administrativo: o access token Bearer emitido pelo Keycloak e enviado no header `Authorization`. Para o domínio é um valor opaco; nunca aparece em `toString` e não deve aparecer em log (issue #6). A senha não é credencial da API: só o Keycloak a recebe.
 - **Perfil** (`Perfil`): conjunto de permissões de um funcionário da oficina: ATENDENTE, MECANICO ou ADMINISTRADOR (ADR 0006), reconhecido pelo nome exato. Equivalência: perfil = papel (termo da ADR 0006 e da issue #4) = *realm role* no Keycloak = authority `ROLE_*` no Spring Security. Roles técnicos do Keycloak (`default-roles-oficina`, `offline_access`, `uma_authorization`) não são perfis da oficina e são ignorados. Não confundir com **perfil de execução**: o profile do Spring/compose (`local`, `dev`, `full`).
 - **Permissão**: ação que um perfil autoriza (por exemplo, excluir uma peça). Hoje é expressa pelas regras `@PreAuthorize` dos controllers e pela regra de URL do `SecurityConfig`; não é um tipo do domínio.

@@ -180,7 +180,8 @@ requisições, status HTTP, latência, JVM e conexões do banco. O Prometheus co
 
 Para rodar a aplicação na IDE/Maven, interpretar os painéis ou personalizar as configurações,
 veja o [guia de observabilidade](docs/grafana.md) e o [ADR 0016](docs/adr/0016-metricas-tecnicas-prometheus.md).
-O tempo de execução dos serviços da oficina continua para uma etapa posterior.
+O tempo médio de execução dos serviços, com aval do professor da Fase 1, é a latência média
+e o p95 das rotas nesse dashboard ([ADR 0022](docs/adr/0022-tempo-medio-execucao-grafana.md)).
 
 ## Instruções para execução dos testes
 

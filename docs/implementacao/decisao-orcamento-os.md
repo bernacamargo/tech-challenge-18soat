@@ -27,9 +27,9 @@ ficam na infraestrutura e não importam entidades externas no domínio/aplicaç�
 concorrência; `ItensAprovacaoOSApiIntegrationTest` cobre o fluxo HTTP e autorização.
 
 Revisão/reabertura, versionamento e liberação das reservas após rejeição estão fora desta
-etapa e precisam de fluxo definido. A métrica de tempo médio será tratada por observabilidade
-por outro responsável, conforme alinhamento do grupo; cálculo e endpoint próprios não fazem
-parte desta entrega.
+etapa e precisam de fluxo definido. O tempo médio de execução é a latência das rotas no
+Grafana (ADR 0022). Esta entrega não agrega `iniciada_em` e `finalizada_em` nem publica
+endpoint dessa duração.
 
 ## Persistência da decisão
 
