@@ -5,43 +5,59 @@ Quadro da imagem `criacao-os.png`.
 Legenda: azul é comando, laranja é evento, roxo é política e verde é modelo de leitura. O ator fica no post-it amarelo do comando.
 
 ```mermaid
-flowchart LR
+flowchart TB
   classDef comando fill:#7dd3fc,stroke:#0369a1,color:#0c4a6e
   classDef evento fill:#fcd34d,stroke:#b45309,color:#78350f
   classDef politica fill:#d8b4fe,stroke:#6b21a8,color:#3b0764
   classDef leitura fill:#86efac,stroke:#166534,color:#14532d
 
-  idCliente["Identifica cliente por CPF/CNPJ<br/>Atendente"]:::comando
-  clienteId["Cliente identificado"]:::evento
-  idVeiculo["Identifica veículo<br/>Atendente"]:::comando
-  veiculoId["Veículo identificado"]:::evento
-  aponta["Aponta serviço/peça a ser utilizado<br/>Atendente"]:::comando
-  apontado["Serviço/Peça apontado"]:::evento
-  abre["Abre ordem de Serviço<br/>Atendente"]:::comando
-  osAberta["Ordem de Serviço Aberta<br/>Recebida"]:::evento
-  listaAbre["Lista de disponibilidade"]:::leitura
+  subgraph etapaIdentificacao["1. Identificação pelo atendente"]
+    direction LR
+    idCliente["Identifica cliente por CPF/CNPJ<br/>Atendente"]:::comando
+    clienteId["Cliente identificado"]:::evento
+    idVeiculo["Identifica veículo<br/>Atendente"]:::comando
+    veiculoId["Veículo identificado"]:::evento
+    idCliente --> clienteId --> idVeiculo --> veiculoId
+  end
 
-  idCliente --> clienteId --> idVeiculo --> veiculoId --> aponta --> apontado --> abre --> osAberta
-  listaAbre --> abre
+  subgraph etapaAbertura["2. Abertura da OS pelo atendente"]
+    direction LR
+    listaAbre["Lista de disponibilidade"]:::leitura
+    aponta["Aponta serviço/peça a ser utilizado<br/>Atendente"]:::comando
+    apontado["Serviço/Peça apontado"]:::evento
+    abre["Abre ordem de Serviço<br/>Atendente"]:::comando
+    osAberta["Ordem de Serviço Aberta<br/>Recebida"]:::evento
+    aponta --> apontado --> abre --> osAberta
+    listaAbre --> abre
+  end
 
-  osRecebida["Ordem de Serviço Recebida"]:::evento
-  diagnostico["Realiza diagnóstico<br/>Mecânico"]:::comando
-  identificada["Serviço/Peça identificada"]:::evento
-  inclui["Inclui serviço na OS<br/>Mecânico"]:::comando
-  incluido["Serviço incluído na OS"]:::evento
-  listaInclui["Lista de disponibilidade"]:::leitura
-  submeter["Submeter ordem de serviço<br/>Mecânico"]:::comando
-  submetida["Ordem de Serviço submetida"]:::evento
-  calcular["Quando a OS é submetida,<br/>calcular orçamento"]:::politica
-  gerado["Orçamento gerado"]:::evento
-  enviar["Quando orçamento é gerado,<br/>enviar para aprovação"]:::politica
-  enviado["Orçamento enviado para aprovação"]:::evento
+  subgraph etapaDiagnostico["3. Diagnóstico pelo mecânico"]
+    direction LR
+    osRecebida["Ordem de Serviço Recebida"]:::evento
+    diagnostico["Realiza diagnóstico<br/>Mecânico"]:::comando
+    identificada["Serviço/Peça identificada"]:::evento
+    listaInclui["Lista de disponibilidade"]:::leitura
+    inclui["Inclui serviço na OS<br/>Mecânico"]:::comando
+    incluido["Serviço incluído na OS"]:::evento
+    submeter["Submeter ordem de serviço<br/>Mecânico"]:::comando
+    osRecebida --> diagnostico --> identificada --> inclui --> incluido --> submeter
+    osRecebida --> submeter
+    listaInclui --> inclui
+  end
 
-  osAberta --> osRecebida
-  osRecebida --> diagnostico --> identificada --> inclui --> incluido --> submeter
-  osRecebida --> submeter
-  listaInclui --> inclui
-  submeter --> submetida --> calcular --> gerado --> enviar --> enviado
+  subgraph etapaOrcamento["4. Orçamento"]
+    direction LR
+    submetida["Ordem de Serviço submetida"]:::evento
+    calcular["Quando a OS é submetida,<br/>calcular orçamento"]:::politica
+    gerado["Orçamento gerado"]:::evento
+    enviar["Quando orçamento é gerado,<br/>enviar para aprovação"]:::politica
+    enviado["Orçamento enviado para aprovação"]:::evento
+    submetida --> calcular --> gerado --> enviar --> enviado
+  end
+
+  etapaIdentificacao --> etapaAbertura
+  etapaAbertura --> etapaDiagnostico
+  etapaDiagnostico --> etapaOrcamento
 ```
 
 ## Abertura pelo atendente
