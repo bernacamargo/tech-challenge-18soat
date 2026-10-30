@@ -196,6 +196,17 @@
                 <version>${dependency-check.version}</version>
                 <configuration>
                     <failOnError>false</failOnError>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                    <!--
+                        A analise de CVEs exige NVD API key gratuita
+                        (https://nvd.nist.gov/developers/request-an-api-key).
+                        O valor vem do env NVD_API_KEY (secret no GitHub Actions);
+                        sem a chave o plugin aborta a analise sem gerar relatorio.
+                    -->
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                 </configuration>
             </plugin>
         </plugins>

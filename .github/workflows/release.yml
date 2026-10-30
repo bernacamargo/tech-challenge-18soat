@@ -9,6 +9,7 @@ permissions:
   contents: write
   packages: write
   checks: read
+  pull-requests: write
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/tech-challenge-18soat
@@ -94,3 +95,68 @@ jobs:
             --generate-notes \
             --title "$TAG" \
             --verify-tag
+
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check-data
+          key: nvd-db-${{ github.run_id }}
+          restore-keys: nvd-db-
+
+      # Exige a secret NVD_API_KEY (chave gratuita da NVD); sem ela a analise de
+      # CVEs nao roda e o relatorio sai com a secao de CVEs marcada como
+      # indisponivel (failOnError=false mantem a release de pe).
+      - name: OWASP Dependency-Check (CVE nas dependencias)
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: >
+          ./mvnw -B -DskipTests dependency-check:check
+          -DdataDirectory=$HOME/.dependency-check-data
+          -DfailOnError=false
+
+      - name: Gerar relatorio de vulnerabilidades
+        env:
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          PROJECT_KEY: bernacamargo_tech-challenge-18soat
+          DC_JSON: target/dependency-check-report.json
+        run: python3 .github/scripts/generate_vulnerability_report.py
+
+      - name: Anexar relatorio como asset da release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release upload "${GITHUB_REF_NAME}"
+          "docs/relatorios/relatorio-vulnerabilidades-${GITHUB_REF_NAME#v}"
+
+      # Versiona o relatorio em docs/relatorios/ via PR (nada vai direto para main).
+      - name: Abrir PR com o relatorio versionado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          BRANCH="docs/relatorio-vulnerabilidades-${VERSION}"
+          FILE="docs/relatorios/relatorio-vulnerabilidades-${VERSION}.md"
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH ja existe; pulando PR (re-execucao?)."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # O relatorio e novo e independente do conteudo da main: partimos da
+          # origin/main atual para o PR nao reverter commits posteriores a tag.
+          git fetch origin main
+          git checkout -b "$BRANCH" origin/main
+          git add "$FILE"
+          git commit -m "docs: relatório de vulnerabilidades ${TAG}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "docs: relatório de vulnerabilidades ${TAG}" \
+            --body "Relatório de vulnerabilidades gerado automaticamente pela release ${TAG} (SonarCloud + Dependency-Check). O arquivo também está anexado como asset da release."

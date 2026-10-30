@@ -26,7 +26,12 @@ jobs:
           key: nvd-db-${{ github.run_id }}
           restore-keys: nvd-db-
 
+      # Exige a secret NVD_API_KEY (chave gratuita da NVD); sem ela a analise de
+      # CVEs nao roda e nenhum relatorio e gerado (o job fica verde de forma
+      # enganosa por causa do failOnError=false).
       - name: OWASP Dependency-Check (CVE nas dependencias)
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: >
           ./mvnw -B -DskipTests dependency-check:check
           -DdataDirectory=$HOME/.dependency-check-data
