@@ -19,11 +19,22 @@ jobs:
           java-version: '21'
           cache: maven
 
+      # Base NVD (~116 MB): chave semanal + save apenas quando nao houver hit.
+      # Caches do GitHub sao evitadas apos 7 dias sem acesso e limitadas a 10 GB
+      # por repositorio; o cron semanal renova o acesso e a chave nova da semana
+      # permite a atualizacao da base sem replicar 116 MB a cada run.
+      # ATENCAO: cache em feature branch so e visivel para ela mesma e para a
+      # main — branches que nao derivam da main refazem o download (uma vez).
+      - name: Resolver semana corrente para a chave da cache NVD
+        id: nvd-week
+        run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Cache NVD database
-        uses: actions/cache@v4
+        id: nvd-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check-data
-          key: nvd-db-${{ github.run_id }}
+          key: nvd-db-${{ steps.nvd-week.outputs.week }}
           restore-keys: nvd-db-
 
       # Exige a secret NVD_API_KEY (chave gratuita da NVD); sem ela a analise de
@@ -36,6 +47,13 @@ jobs:
           ./mvnw -B -DskipTests dependency-check:check
           -DdataDirectory=$HOME/.dependency-check-data
           -DfailOnError=false
+
+      - name: Salvar cache NVD (apenas quando restaurou de chave antiga)
+        if: steps.nvd-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.dependency-check-data
+          key: nvd-db-${{ steps.nvd-week.outputs.week }}
 
       - name: Upload relatorio de analise de vulnerabilidades
         if: always()
