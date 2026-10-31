@@ -141,7 +141,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh release upload "${GITHUB_REF_NAME}"
-          "docs/relatorios/relatorio-vulnerabilidades-${GITHUB_REF_NAME#v}"
+          "docs/relatorios/relatorio-vulnerabilidades-${GITHUB_REF_NAME#v}.md"
 
       # Versiona o relatorio em docs/relatorios/ via PR (nada vai direto para main).
       - name: Abrir PR com o relatorio versionado
