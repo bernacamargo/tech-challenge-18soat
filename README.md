@@ -352,8 +352,9 @@ público (o token do Actions não altera visibilidade).
 
 ## Análise de vulnerabilidades
 
-- **SonarCloud**: [dashboard do projeto](https://sonarcloud.io/project/overview?id=bernacamargo_tech-challenge-18soat) (quality gate + cobertura)
-- **OWASP Dependency-Check**: relatório HTML gerado pelo workflow `security` (artifact no GitHub Actions) e semanalmente agendado.
+- **SonarCloud** (análise estática): [dashboard do projeto](https://sonarcloud.io/dashboard?id=bernacamargo_tech-challenge-18soat&branch=main) — roda nos PRs e a cada push na `main` (quality gate + cobertura). Branch principal: `main`.
+- **OWASP Dependency-Check** (CVE nas dependências): workflow `security` semanalmente (segunda-feira) e a cada push na `main`. **Exige a secret `NVD_API_KEY`** (chave gratuita do NVD) — sem ela a análise de CVEs não roda ([ADR 0005](docs/adr/0005-sonarcloud-dependency-check.md)).
+- **Relatório por release**: cada tag `v*.*.*` gera `docs/relatorios/relatorio-vulnerabilidades-<versão>.md` (SonarCloud + Dependency-Check), publicado como **asset da GitHub Release** e versionado via **PR automático** em [`docs/relatorios/`](docs/relatorios/). Gerador: [`.github/scripts/generate_vulnerability_report.py`](.github/scripts/generate_vulnerability_report.py).
 
 ## Link para o vídeo da entrega
 

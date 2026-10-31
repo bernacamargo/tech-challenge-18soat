@@ -29,6 +29,12 @@
         <sonar.organization>bernacamargo</sonar.organization>
         <sonar.projectKey>bernacamargo_tech-challenge-18soat</sonar.projectKey>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <!-- Analise restrita ao layout Maven: o escopo do Sonar e o codigo de
+             produto (src/main/java) e os testes (src/test/java). Tooling de CI,
+             scripts e docs ficam fora por padrao — whitelist, sem lista de
+             exclusoes para manter a medida que pastas novas surgirem. -->
+        <sonar.sources>src/main/java</sonar.sources>
+        <sonar.tests>src/test/java</sonar.tests>
     </properties>
 
     <dependencies>
@@ -196,6 +202,17 @@
                 <version>${dependency-check.version}</version>
                 <configuration>
                     <failOnError>false</failOnError>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                    <!--
+                        A analise de CVEs exige NVD API key gratuita
+                        (https://nvd.nist.gov/developers/request-an-api-key).
+                        O valor vem do env NVD_API_KEY (secret no GitHub Actions);
+                        sem a chave o plugin aborta a analise sem gerar relatorio.
+                    -->
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                 </configuration>
             </plugin>
         </plugins>
