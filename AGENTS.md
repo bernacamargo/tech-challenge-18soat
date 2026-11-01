@@ -62,9 +62,10 @@ APP_PROFILES=observability docker compose --profile full --profile observability
 
 ## Release
 
-Corte manual por tag `vMAJOR.MINOR.PATCH` em `main` (CI verde). Workflow
-`.github/workflows/release.yml` → imagem no GHCR + GitHub Release + relatório de
-vulnerabilidades. **Não mover/recriar tag já publicada.** Procedimento completo:
+Corte manual por tag `vMAJOR.MINOR.PATCH` em `main` com o check `ci` verde. O workflow
+`.github/workflows/release.yml` publica imagem no GHCR (`X.Y.Z` e `sha-<curto>`, sem `latest`),
+GitHub Release com notas geradas e relatório de vulnerabilidades (asset + PR). Sem deploy e
+sem bump do `pom.xml`. A tag publicada não se move; a próxima correção é outra tag. Procedimento:
 [README § Release](README.md#release-imagem-no-ghcr) e [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md).
 
 ## Teste ponta a ponta

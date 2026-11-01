@@ -44,10 +44,14 @@ O check obrigatório para mergear em `main` é o workflow `.github/workflows/ci.
 
 ## Release
 
-Corte manual de tag anotada `vMAJOR.MINOR.PATCH` em um commit de `main` com `ci` verde.
-Publica imagem no GHCR, GitHub Release e relatório de vulnerabilidades (asset + PR).
-**Não delete/recrie a tag** depois de publicada. Passo a passo, conferência e cuidados:
-[README § Release](README.md#release-imagem-no-ghcr) e [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md).
+Corte manual de uma tag anotada `vMAJOR.MINOR.PATCH` em um commit de `main` com o check `ci`
+verde. O workflow publica a imagem no GHCR, a GitHub Release e o relatório de vulnerabilidades
+(asset + PR para `docs/relatorios/`). Não há deploy. A tag publicada não é movida: a correção
+seguinte é uma versão nova.
+
+Procedimento (pré-requisitos, corte, o que conferir e como puxar a imagem):
+[README § Release](README.md#release-imagem-no-ghcr). Decisão:
+[ADR 0019](docs/adr/0019-release-por-tag-ghcr.md).
 
 ## Build e testes locais
 

@@ -332,61 +332,85 @@ src/test/java/     testes unitários e de integração (Testcontainers)
 
 ## Release (imagem no GHCR)
 
-A release é cortada **manualmente** com uma tag semver anotada `vMAJOR.MINOR.PATCH` em um
-commit de `main` cujo check `ci` esteja verde
-([ADR 0019](docs/adr/0019-release-por-tag-ghcr.md)). Não há deploy neste fluxo; a hospedagem
-na AWS fica para um ADR futuro. O `pom.xml` permanece `0.0.1-SNAPSHOT` — a versão publicada
-é a da tag git, não um bump no Maven.
+Uma release é o contrato imutável de uma versão: tag git + imagem no GHCR + GitHub Release
++ relatório de vulnerabilidades. Não há deploy neste fluxo; a hospedagem na AWS fica para um
+ADR futuro. Decisão: [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md). O Compose local
+continua com `build: .` e não puxa a imagem publicada.
 
-### Como cortar
+A versão publicada é a da tag (`v1.2.3` → imagem `:1.2.3`). O `pom.xml` permanece
+`0.0.1-SNAPSHOT`; não há commit de bump.
+
+### Pré-requisitos
+
+- O commit está em `main` (é ancestral de `origin/main`) e o check `ci` desse SHA está
+  `success`. O workflow de release consulta esse check; não reexecuta a suíte de testes.
+- Tag anotada no formato exato `vMAJOR.MINOR.PATCH` (ex.: `v0.1.0`). Outros formatos
+  (`v1.2`, `v1.2.3-rc1`) não disparam o workflow.
+- Secret `NVD_API_KEY` no repositório, para a seção de CVEs do relatório
+  ([ADR 0005](docs/adr/0005-sonarcloud-dependency-check.md)). Sem a chave a release segue e
+  essa seção sai marcada como indisponível.
+- Em Settings → Actions → General, *Allow GitHub Actions to create and approve pull requests*
+  habilitado. É o que permite o PR automático do relatório. Sem isso o job falha no
+  `gh pr create`; a imagem e a GitHub Release já terão sido criadas.
+
+### Cortar a versão
 
 ```bash
 git checkout main && git pull
-# confira que o SHA alvo tem check "ci" = success no GitHub
+# no GitHub, confira o check "ci" = success no SHA de HEAD
 git tag -a v0.1.0 -m "v0.1.0"
 git push origin v0.1.0
 ```
 
-O push da tag dispara [`.github/workflows/release.yml`](.github/workflows/release.yml), que:
+Troque `v0.1.0` pela próxima versão semver. O `git push` da tag dispara
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
 
-1. Valida formato semver e que o commit é ancestral de `origin/main`
-2. Exige check `ci` = `success` nesse SHA (não reexecuta a suíte de testes)
-3. Faz build e push da imagem no GHCR: `ghcr.io/bernacamargo/tech-challenge-18soat:X.Y.Z` e
-   `:sha-<curto>` (**sem** tag `latest`)
+### O que o workflow publica
+
+1. Valida o formato da tag e a ancestralidade em `origin/main`.
+2. Exige check `ci` = `success` no SHA da tag.
+3. Build e push da imagem para `ghcr.io/bernacamargo/tech-challenge-18soat`, com duas tags:
+   `X.Y.Z` (sem o prefixo `v`) e `sha-<curto>` (7 caracteres). Não existe tag `latest`.
 4. Cria a [GitHub Release](https://github.com/bernacamargo/tech-challenge-18soat/releases)
-   com notas geradas (`--generate-notes`); se a release já existir como draft (ex.: tag
-   recriada), republica; se já estiver publicada, segue sem recriar
-5. Gera o relatório de vulnerabilidades (SonarCloud + Dependency-Check), anexa como **asset**
-   da release e abre um **PR** versionando
-   `docs/relatorios/relatorio-vulnerabilidades-<versão>.md` (nada vai direto para `main`)
+   com título igual à tag e notas geradas a partir dos PRs (`--generate-notes`). Se a release
+   dessa tag já existir, o passo é pulado e o job segue.
+5. Roda o OWASP Dependency-Check e gera
+   `docs/relatorios/relatorio-vulnerabilidades-<versão>.md` (SonarCloud + CVEs) com
+   [`.github/scripts/generate_vulnerability_report.py`](.github/scripts/generate_vulnerability_report.py).
+6. Anexa esse Markdown como asset da GitHub Release.
+7. Abre um pull request `docs: relatório de vulnerabilidades vX.Y.Z` a partir de `main`
+   atual, com o arquivo em [`docs/relatorios/`](docs/relatorios/). Nada entra em `main`
+   direto: alguém do grupo revisa e mergeia esse PR.
 
-### Conferir o sucesso
+### Conferir
 
-- Actions → workflow **release** verde
-- Imagem: `ghcr.io/bernacamargo/tech-challenge-18soat:X.Y.Z`
-- Release **publicada** (não draft) em
-  [Releases](https://github.com/bernacamargo/tech-challenge-18soat/releases) com o asset do
-  relatório
-- PR `docs: relatório de vulnerabilidades vX.Y.Z` aberto (ou já mergeado)
+- Actions → workflow **release** verde.
+- `docker pull ghcr.io/bernacamargo/tech-challenge-18soat:X.Y.Z` (e a tag `sha-<curto>` do
+  mesmo digest).
+- GitHub Release **publicada** da tag, com as notas e o asset
+  `relatorio-vulnerabilidades-X.Y.Z.md`.
+- PR do relatório aberto. Depois do merge, o arquivo fica em `docs/relatorios/`.
 
-### Regras e cuidados
+### Primeira publicação no GHCR
 
-- **Não delete nem recrie uma tag já publicada.** Apagar a tag desvincula a GitHub Release e a
-  deixa em draft (`untagged-…`). Se precisar corrigir algo depois do corte, abra o fix via PR
-  em `main` e corte a **próxima** versão (`v0.1.1`, …) — não mova a tag antiga.
-- **Primeiro push no GHCR**: o pacote nasce privado. Uma vez, em Packages → settings do pacote:
-  vincular o repositório e tornar público (`GITHUB_TOKEN` não altera visibilidade).
-- **PR automático do relatório**: em Settings → Actions → General, habilite
-  *Allow GitHub Actions to create and approve pull requests*. Sem isso o job falha no
-  `gh pr create` (o asset da release ainda é anexado). A secret `NVD_API_KEY` é necessária
-  para a seção de CVEs do relatório; sem ela a release segue, com CVEs marcados como
-  indisponíveis.
+O pacote nasce **privado**. Uma vez, em GitHub → Packages → settings do pacote: vincular o
+repositório `tech-challenge-18soat` e mudar a visibilidade para público. O `GITHUB_TOKEN` do
+Actions não altera visibilidade. Sem isso, quem não está autenticado no GHCR não puxa a imagem.
+
+### Próxima versão
+
+Cada release é uma tag nova (`v0.1.0`, depois `v0.1.1` ou `v0.2.0`). A tag publicada não é
+movida nem apagada: ela é o ponteiro estável daquela versão (imagem, release e relatório).
+Correção posterior entra por PR em `main` e sai na versão seguinte.
+
+O workflow lê o YAML do commit da tag. Mudança em `release.yml` vale para as tags cortadas
+depois que esse commit estiver em `main`.
 
 ## Análise de vulnerabilidades
 
 - **SonarCloud** (análise estática): [dashboard do projeto](https://sonarcloud.io/dashboard?id=bernacamargo_tech-challenge-18soat&branch=main) — roda nos PRs e a cada push na `main` (quality gate + cobertura). Branch principal: `main`.
 - **OWASP Dependency-Check** (CVE nas dependências): workflow `security` semanalmente (segunda-feira) e a cada push na `main`. **Exige a secret `NVD_API_KEY`** (chave gratuita do NVD) — sem ela a análise de CVEs não roda ([ADR 0005](docs/adr/0005-sonarcloud-dependency-check.md)).
-- **Relatório por release**: cada tag `v*.*.*` gera `docs/relatorios/relatorio-vulnerabilidades-<versão>.md` (SonarCloud + Dependency-Check), publicado como **asset da GitHub Release** e versionado via **PR automático** em [`docs/relatorios/`](docs/relatorios/). Gerador: [`.github/scripts/generate_vulnerability_report.py`](.github/scripts/generate_vulnerability_report.py).
+- **Relatório por release**: gerado no workflow de release (asset da GitHub Release + PR em [`docs/relatorios/`](docs/relatorios/)). O procedimento está em [Release](#release-imagem-no-ghcr).
 
 ## Link para o vídeo da entrega
 
