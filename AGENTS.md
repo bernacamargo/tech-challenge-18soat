@@ -60,6 +60,13 @@ APP_PROFILES=observability docker compose --profile full --profile observability
 ./mvnw dependency-check:check                             # relatório CVE local
 ```
 
+## Release
+
+Corte manual por tag `vMAJOR.MINOR.PATCH` em `main` (CI verde). Workflow
+`.github/workflows/release.yml` → imagem no GHCR + GitHub Release + relatório de
+vulnerabilidades. **Não mover/recriar tag já publicada.** Procedimento completo:
+[README § Release](README.md#release-imagem-no-ghcr) e [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md).
+
 ## Teste ponta a ponta
 
 Para repetir o teste do sistema no ar (atendimento, catálogo e estoque, identidade e notificação, com Swagger, MailPit, Keycloak e relatório versionado por data/hora), siga a skill [`.cursor/skills/teste-e2e/SKILL.md`](.cursor/skills/teste-e2e/SKILL.md). As execuções ficam em `docs/e2e/`.

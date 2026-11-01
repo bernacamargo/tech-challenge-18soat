@@ -332,23 +332,55 @@ src/test/java/     testes unitários e de integração (Testcontainers)
 
 ## Release (imagem no GHCR)
 
-A release é cortada manualmente a partir de um commit de `main` cujo check `ci` esteja verde
+A release é cortada **manualmente** com uma tag semver anotada `vMAJOR.MINOR.PATCH` em um
+commit de `main` cujo check `ci` esteja verde
 ([ADR 0019](docs/adr/0019-release-por-tag-ghcr.md)). Não há deploy neste fluxo; a hospedagem
-na AWS fica para um ADR futuro.
+na AWS fica para um ADR futuro. O `pom.xml` permanece `0.0.1-SNAPSHOT` — a versão publicada
+é a da tag git, não um bump no Maven.
+
+### Como cortar
 
 ```bash
-# a partir de main atualizada, no SHA desejado:
+git checkout main && git pull
+# confira que o SHA alvo tem check "ci" = success no GitHub
 git tag -a v0.1.0 -m "v0.1.0"
 git push origin v0.1.0
 ```
 
-O workflow `.github/workflows/release.yml` publica:
+O push da tag dispara [`.github/workflows/release.yml`](.github/workflows/release.yml), que:
 
-- Imagem: `ghcr.io/bernacamargo/tech-challenge-18soat:0.1.0` (e `sha-<curto>`)
-- [GitHub Release](https://github.com/bernacamargo/tech-challenge-18soat/releases) com notas geradas
+1. Valida formato semver e que o commit é ancestral de `origin/main`
+2. Exige check `ci` = `success` nesse SHA (não reexecuta a suíte de testes)
+3. Faz build e push da imagem no GHCR: `ghcr.io/bernacamargo/tech-challenge-18soat:X.Y.Z` e
+   `:sha-<curto>` (**sem** tag `latest`)
+4. Cria a [GitHub Release](https://github.com/bernacamargo/tech-challenge-18soat/releases)
+   com notas geradas (`--generate-notes`); se a release já existir como draft (ex.: tag
+   recriada), republica; se já estiver publicada, segue sem recriar
+5. Gera o relatório de vulnerabilidades (SonarCloud + Dependency-Check), anexa como **asset**
+   da release e abre um **PR** versionando
+   `docs/relatorios/relatorio-vulnerabilidades-<versão>.md` (nada vai direto para `main`)
 
-Após o primeiro push, nas Settings do pacote no GHCR: vincular o repositório e tornar o pacote
-público (o token do Actions não altera visibilidade).
+### Conferir o sucesso
+
+- Actions → workflow **release** verde
+- Imagem: `ghcr.io/bernacamargo/tech-challenge-18soat:X.Y.Z`
+- Release **publicada** (não draft) em
+  [Releases](https://github.com/bernacamargo/tech-challenge-18soat/releases) com o asset do
+  relatório
+- PR `docs: relatório de vulnerabilidades vX.Y.Z` aberto (ou já mergeado)
+
+### Regras e cuidados
+
+- **Não delete nem recrie uma tag já publicada.** Apagar a tag desvincula a GitHub Release e a
+  deixa em draft (`untagged-…`). Se precisar corrigir algo depois do corte, abra o fix via PR
+  em `main` e corte a **próxima** versão (`v0.1.1`, …) — não mova a tag antiga.
+- **Primeiro push no GHCR**: o pacote nasce privado. Uma vez, em Packages → settings do pacote:
+  vincular o repositório e tornar público (`GITHUB_TOKEN` não altera visibilidade).
+- **PR automático do relatório**: em Settings → Actions → General, habilite
+  *Allow GitHub Actions to create and approve pull requests*. Sem isso o job falha no
+  `gh pr create` (o asset da release ainda é anexado). A secret `NVD_API_KEY` é necessária
+  para a seção de CVEs do relatório; sem ela a release segue, com CVEs marcados como
+  indisponíveis.
 
 ## Análise de vulnerabilidades
 

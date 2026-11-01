@@ -24,10 +24,15 @@ commit de `main`:
    (`ghcr.io/bernacamargo/tech-challenge-18soat`), com tags imutáveis `X.Y.Z` (sem o prefixo `v`)
    e `sha-<curto>`. **Sem** tag `latest`.
 4. Criação de **GitHub Release** com notas geradas (`gh release create --generate-notes`). Se a
-   release já existir (criada pela UI), o job segue e apenas publica a imagem.
-5. A versão da imagem vem da tag git. O `pom.xml` permanece `0.0.1-SNAPSHOT` no desenvolvimento;
+   release já existir publicada, o job segue e apenas publica a imagem. Se existir como
+   **draft** (caso típico: a tag foi apagada/recriada e o GitHub desvinculou a release), o
+   workflow republica com `gh release edit --draft=false`.
+5. Relatório de vulnerabilidades (SonarCloud + Dependency-Check): gerado no mesmo job, anexado
+   como asset da release e versionado em `docs/relatorios/` via PR automático (exige a opção
+   *Allow GitHub Actions to create and approve pull requests* nas Settings do repositório).
+6. A versão da imagem vem da tag git. O `pom.xml` permanece `0.0.1-SNAPSHOT` no desenvolvimento;
    não há commit de bump.
-6. **Nenhum** step de deploy, credencial AWS ou ECR neste workflow. Compose local continua com
+7. **Nenhum** step de deploy, credencial AWS ou ECR neste workflow. Compose local continua com
    `build: .`.
 
 Quando houver conta AWS, um ADR futuro escolhe o runtime; o deploy entra em workflow próprio
@@ -37,13 +42,17 @@ hospedagem.
 Após o primeiro push, o pacote no GHCR nasce **privado**. Uma vez, nas Settings do pacote:
 vincular o repositório e tornar o pacote público (`GITHUB_TOKEN` não altera visibilidade).
 
+**Tag imutável após publicação:** não apagar nem mover `vX.Y.Z` já publicada. O GitHub
+desvincula a release e a deixa draft (`untagged-…`). Correção posterior = nova versão
+semver (ex.: `v0.1.1`), não retag da mesma.
+
 ## Consequências
 
 - Positivas: artefato reproduzível e pinável para a AWS futura; evidência de release no GitHub
-  (imagem + Release notes); CI de merge permanece sem permissão `packages: write`.
+  (imagem + Release notes + relatório); CI de merge permanece sem permissão `packages: write`.
 - Negativas / trade-offs aceitos: corte de versão é manual; pacote GHCR exige ajuste único de
   visibilidade após o primeiro push; sem `latest`, quem consome a imagem precisa da versão
-  explícita.
+  explícita; tag publicada é contrato — mover exige republicar draft ou cortar patch novo.
 - Alternativas consideradas e por que foram descartadas:
   - **Bump automático a cada merge em `main`**: publicaria imagem de trabalho incompleto a cada
     PR e misturaria “artefato de release” com “build contínuo”.
