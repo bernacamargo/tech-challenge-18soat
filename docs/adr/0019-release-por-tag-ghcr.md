@@ -23,12 +23,20 @@ commit de `main`:
 3. Build e push da imagem para o **GitHub Container Registry (GHCR)**
    (`ghcr.io/bernacamargo/tech-challenge-18soat`), com tags imutáveis `X.Y.Z` (sem o prefixo `v`)
    e `sha-<curto>`. **Sem** tag `latest`.
-4. Criação de **GitHub Release** com notas geradas (`gh release create --generate-notes`). Se a
-   release já existir (criada pela UI), o job segue e apenas publica a imagem.
-5. A versão da imagem vem da tag git. O `pom.xml` permanece `0.0.1-SNAPSHOT` no desenvolvimento;
+4. Criação de **GitHub Release** com notas geradas (`gh release create --generate-notes`).
+   Se a release dessa tag já existir, o passo é pulado e o job segue.
+5. **Relatório de vulnerabilidades** no mesmo job (SonarCloud + OWASP Dependency-Check):
+   arquivo `docs/relatorios/relatorio-vulnerabilidades-<versão>.md`, anexado como asset da
+   release e versionado por PR automático em `main` (a option *Allow GitHub Actions to create
+   and approve pull requests* precisa estar ligada). A secret `NVD_API_KEY` alimenta a seção
+   de CVEs; sem ela a release segue e a seção fica indisponível (ADR 0005).
+6. A versão da imagem vem da tag git. O `pom.xml` permanece `0.0.1-SNAPSHOT` no desenvolvimento;
    não há commit de bump.
-6. **Nenhum** step de deploy, credencial AWS ou ECR neste workflow. Compose local continua com
+7. **Nenhum** step de deploy, credencial AWS ou ECR neste workflow. Compose local continua com
    `build: .`.
+8. A tag publicada é o ponteiro estável daquela versão. Não se apaga nem se move. Correção
+   posterior é uma tag semver nova, cortada depois que o fix estiver em `main`. O workflow
+   que rodou é o YAML do commit da tag.
 
 Quando houver conta AWS, um ADR futuro escolhe o runtime; o deploy entra em workflow próprio
 (OIDC), puxando a tag já publicada no GHCR — o workflow de release não ganha passos de
@@ -37,13 +45,16 @@ hospedagem.
 Após o primeiro push, o pacote no GHCR nasce **privado**. Uma vez, nas Settings do pacote:
 vincular o repositório e tornar o pacote público (`GITHUB_TOKEN` não altera visibilidade).
 
+O procedimento operacional (pré-requisitos, corte, conferência e consumo da imagem) está no
+[README § Release](../../README.md#release-imagem-no-ghcr).
+
 ## Consequências
 
 - Positivas: artefato reproduzível e pinável para a AWS futura; evidência de release no GitHub
-  (imagem + Release notes); CI de merge permanece sem permissão `packages: write`.
+  (imagem + notas + relatório); CI de merge permanece sem permissão `packages: write`.
 - Negativas / trade-offs aceitos: corte de versão é manual; pacote GHCR exige ajuste único de
   visibilidade após o primeiro push; sem `latest`, quem consome a imagem precisa da versão
-  explícita.
+  explícita; tag publicada não é reescrita — a correção espera a próxima versão.
 - Alternativas consideradas e por que foram descartadas:
   - **Bump automático a cada merge em `main`**: publicaria imagem de trabalho incompleto a cada
     PR e misturaria “artefato de release” com “build contínuo”.
