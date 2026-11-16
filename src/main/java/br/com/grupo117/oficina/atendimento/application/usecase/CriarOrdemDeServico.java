@@ -13,7 +13,6 @@ import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
 import br.com.grupo117.oficina.atendimento.domain.Placa;
 import br.com.grupo117.oficina.atendimento.domain.TipoItemOS;
 import br.com.grupo117.oficina.atendimento.domain.Veiculo;
-import br.com.grupo117.oficina.atendimento.domain.valueobject.Dinheiro;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -76,19 +75,13 @@ public final class CriarOrdemDeServico {
             throw new IllegalArgumentException("Quantidade deve ser positiva");
         }
         if (servicoId != null) {
-            ItemCatalogo dados = catalogo.buscarServico(servicoId)
-                    .orElseThrow(() -> new IllegalArgumentException("Item não encontrado no catálogo: " + servicoId));
-            os.incluirItem(new ItemDaOS(UUID.randomUUID(), servicoId, TipoItemOS.SERVICO,
-                    dados.descricao(), quantidade, new Dinheiro(dados.preco())));
+            ItemCatalogo dados = ItensDoCatalogo.exigirItem(catalogo.buscarServico(servicoId), servicoId);
+            os.incluirItem(ItensDoCatalogo.criar(dados, servicoId, TipoItemOS.SERVICO, quantidade));
             return;
         }
-        ItemCatalogo dados = catalogo.buscarPeca(pecaId)
-                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado no catálogo: " + pecaId));
-        ItemDaOS item = new ItemDaOS(UUID.randomUUID(), pecaId, TipoItemOS.PECA,
-                dados.descricao(), quantidade, new Dinheiro(dados.preco()));
-        if (!estoque.reservar(os.id(), item.id(), pecaId, quantidade)) {
-            throw new IllegalStateException("Estoque insuficiente para a peça: " + pecaId);
-        }
+        ItemCatalogo dados = ItensDoCatalogo.exigirItem(catalogo.buscarPeca(pecaId), pecaId);
+        ItemDaOS item = ItensDoCatalogo.criar(dados, pecaId, TipoItemOS.PECA, quantidade);
+        ItensDoCatalogo.reservarPeca(estoque, os.id(), item);
         os.incluirItem(item);
     }
 }

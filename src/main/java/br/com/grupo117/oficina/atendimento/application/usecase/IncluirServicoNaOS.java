@@ -6,7 +6,6 @@ import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoReposi
 import br.com.grupo117.oficina.atendimento.domain.ItemDaOS;
 import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
 import br.com.grupo117.oficina.atendimento.domain.TipoItemOS;
-import br.com.grupo117.oficina.atendimento.domain.valueobject.Dinheiro;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -28,13 +27,11 @@ public final class IncluirServicoNaOS {
         OrdemDeServico os = ordens.buscarPorId(osId)
                 .orElseThrow(() -> new OrdemDeServicoNaoEncontradaException(osId));
         os.validarInclusaoDeItem();
-        ItemCatalogo dados = catalogo.buscarServico(catalogoId)
-                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado no catálogo: " + catalogoId));
+        ItemCatalogo dados = ItensDoCatalogo.exigirItem(catalogo.buscarServico(catalogoId), catalogoId);
         if (!catalogoId.equals(dados.id())) {
             throw new IllegalArgumentException("Catálogo retornou identificador divergente");
         }
-        ItemDaOS item = new ItemDaOS(UUID.randomUUID(), catalogoId, TipoItemOS.SERVICO,
-                dados.descricao(), quantidade, new Dinheiro(dados.preco()));
+        ItemDaOS item = ItensDoCatalogo.criar(dados, catalogoId, TipoItemOS.SERVICO, quantidade);
         os.incluirItem(item);
         return ordens.salvar(os);
     }
