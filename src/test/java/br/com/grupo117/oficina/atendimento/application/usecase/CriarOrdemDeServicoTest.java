@@ -148,6 +148,40 @@ class CriarOrdemDeServicoTest {
     }
 
     @Test
+    void preservaOrdemDosItensEOrdenaReservasPorPeca() {
+        UUID primeiraPeca = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID segundaPeca = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        UUID servico = UUID.randomUUID();
+        List<UUID> pecasReservadas = new ArrayList<>();
+        List<UUID> itensReservados = new ArrayList<>();
+        CatalogoOSPort catalogo = new CatalogoOSPort() {
+            @Override
+            public Optional<ItemCatalogo> buscarServico(UUID id) {
+                return Optional.of(new ItemCatalogo(id, "Troca de óleo", new BigDecimal("80.50")));
+            }
+
+            @Override
+            public Optional<ItemCatalogo> buscarPeca(UUID id) {
+                return Optional.of(new ItemCatalogo(id, "Peça", new BigDecimal("25.25")));
+            }
+        };
+        CriarOrdemDeServico caso = novoCaso(veiculos, ordens, catalogo, (osId, itemId, pecaId, quantidade) -> {
+            pecasReservadas.add(pecaId);
+            itensReservados.add(itemId);
+            return true;
+        });
+
+        OrdemDeServico os = caso.criar("52998224725", "Maria", "ABC1D23", "Fiat", "Uno", 2012,
+                List.of(new CriarOrdemDeServico.ItemInicial(TipoItemOS.SERVICO, servico, 1),
+                        new CriarOrdemDeServico.ItemInicial(TipoItemOS.PECA, segundaPeca, 2),
+                        new CriarOrdemDeServico.ItemInicial(TipoItemOS.PECA, primeiraPeca, 3)), null);
+
+        assertThat(os.itens()).extracting(ItemDaOS::catalogoId).containsExactly(servico, segundaPeca, primeiraPeca);
+        assertThat(pecasReservadas).containsExactly(primeiraPeca, segundaPeca);
+        assertThat(itensReservados).containsExactly(os.itens().get(2).id(), os.itens().get(1).id());
+    }
+
+    @Test
     void estoqueInsuficienteNaoIncluiAPecaApontada() {
         UUID pecaId = UUID.randomUUID();
         CriarOrdemDeServico caso = novoCaso(veiculos, ordens, catalogo(null, pecaId), (a, b, c, d) -> false);

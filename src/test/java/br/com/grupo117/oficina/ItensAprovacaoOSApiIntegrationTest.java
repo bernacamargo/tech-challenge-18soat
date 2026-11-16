@@ -2,6 +2,7 @@ package br.com.grupo117.oficina;
 
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.domain.StatusOS;
+import br.com.grupo117.oficina.atendimento.infrastructure.api.ItemDaOSResponse;
 import br.com.grupo117.oficina.atendimento.infrastructure.api.OrdemDeServicoResponse;
 import br.com.grupo117.oficina.catalogoestoque.infrastructure.api.PecaResponse;
 import br.com.grupo117.oficina.catalogoestoque.infrastructure.api.ServicoResponse;
@@ -9,6 +10,7 @@ import br.com.grupo117.oficina.infra.security.JwtTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -191,6 +193,67 @@ class ItensAprovacaoOSApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(resposta.getBody().status()).isEqualTo(StatusOS.RECEBIDA);
         assertThat(resposta.getBody().itens()).hasSize(1);
         estoque(peca, 10, 2, 8);
+    }
+
+    @Test
+    void abreOsComServicosEPecasERetornaIdentificador() {
+        UUID servico = cadastrarServico();
+        UUID peca = cadastrarPeca();
+        var resposta = abrirComListas(
+                List.of(Map.of("servicoId", servico, "quantidade", 1),
+                        Map.of("servicoId", servico, "quantidade", 2)),
+                List.of(Map.of("pecaId", peca, "quantidade", 2),
+                        Map.of("pecaId", peca, "quantidade", 3)),
+                OrdemDeServicoResponse.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        OrdemDeServicoResponse criada = resposta.getBody();
+        assertThat(criada.id()).isNotNull();
+        assertThat(resposta.getHeaders().getLocation()).hasToString(PATH + criada.id());
+        assertThat(criada.status()).isEqualTo(StatusOS.RECEBIDA);
+        assertThat(criada.itens()).extracting(ItemDaOSResponse::catalogoId)
+                .containsExactly(servico, servico, peca, peca);
+        assertThat(criada.itens()).extracting(ItemDaOSResponse::quantidade).containsExactly(1, 2, 2, 3);
+        assertThat(consultar(criada.id(), "ATENDENTE").itens()).isEqualTo(criada.itens());
+        estoque(peca, 10, 5, 5);
+    }
+
+    @Test
+    void faltaDeSaldoNaSegundaReservaDesfazAberturaInteira() {
+        UUID servico = cadastrarServico();
+        UUID peca = cadastrarPeca();
+        var resposta = abrirComListas(List.of(Map.of("servicoId", servico, "quantidade", 1)),
+                List.of(Map.of("pecaId", peca, "quantidade", 2),
+                        Map.of("pecaId", peca, "quantidade", 9)), JsonNode.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(resposta.getBody().path("mensagem").asText()).contains("Estoque insuficiente");
+        for (String tabela : List.of("cliente", "veiculo", "ordem_de_servico", "item_da_os",
+                "reserva_de_estoque", "reserva_item_os")) {
+            assertThat(jdbc.queryForObject("select count(*) from " + tabela, Long.class))
+                    .as(tabela).isZero();
+        }
+        estoque(peca, 10, 0, 10);
+    }
+
+    @Test
+    void aberturaRejeitaQuantidadeInvalidaDentroDaLista() {
+        UUID peca = cadastrarPeca();
+        var resposta = abrirComListas(List.of(),
+                List.of(Map.of("pecaId", peca, "quantidade", 0)), JsonNode.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(resposta.getBody().path("mensagem").asText()).contains("pecas[0].quantidade");
+        assertThat(ordens.listar()).isEmpty();
+        estoque(peca, 10, 0, 10);
+    }
+
+    private <T> ResponseEntity<T> abrirComListas(List<Map<String, Object>> servicos,
+                                                List<Map<String, Object>> pecas, Class<T> tipoResposta) {
+        return restTemplate.exchange("/api/ordens-de-servico", HttpMethod.POST,
+                new HttpEntity<>(Map.of("documento", "52998224725", "nome", "Maria", "placa", "DEF2E34",
+                        "marca", "Fiat", "modelo", "Uno", "ano", 2012, "servicos", servicos, "pecas", pecas),
+                        headers("ATENDENTE")), tipoResposta);
     }
 
     private UUID abrirOS() {
