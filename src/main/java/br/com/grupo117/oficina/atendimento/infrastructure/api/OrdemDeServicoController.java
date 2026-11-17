@@ -37,7 +37,9 @@ public class OrdemDeServicoController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ATENDENTE', 'MECANICO', 'ADMINISTRADOR')")
-    @Operation(summary = "Lista as ordens de serviço", description = "Retorna identificação, itens, orçamento, status, início, finalização e rejeição quando registrada")
+    @Operation(summary = "Lista as ordens de serviço", description = "Lista OS em execução, aguardando aprovação, em diagnóstico e recebidas, nessa prioridade. "
+                    + "Em cada status, as mais antigas vêm primeiro. OS legadas sem data de abertura vêm antes "
+                    + "das datadas, com desempate por UUID. Finalizadas e entregues são omitidas.")
     public List<OrdemDeServicoResponse> listar() {
         return service.listar().stream().map(OrdemDeServicoResponse::de).toList();
     }

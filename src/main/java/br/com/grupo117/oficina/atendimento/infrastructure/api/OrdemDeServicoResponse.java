@@ -13,13 +13,16 @@ public record OrdemDeServicoResponse(UUID id, String clienteId, String veiculoId
                                       @Schema(description = "Início da execução em UTC; nulo antes da aprovação ou em registros legados sem início conhecido", nullable = true)
                                       Instant iniciadaEm,
                                       @Schema(description = "Data e motivo da rejeição; nulo quando não houve rejeição", nullable = true)
-                                      RejeicaoOrcamentoResponse rejeicaoOrcamento) {
+                                      RejeicaoOrcamentoResponse rejeicaoOrcamento,
+                                      @Schema(description = "Abertura da OS em UTC; nulo em registros legados sem data conhecida", nullable = true)
+                                      Instant abertaEm) {
     public static OrdemDeServicoResponse de(OrdemDeServico os) {
         return new OrdemDeServicoResponse(os.id(), os.clienteId(), os.veiculoId(),
                 os.status(), os.finalizadaEm().orElse(null),
                 os.itens().stream().map(ItemDaOSResponse::de).toList(),
                 os.orcamento().map(valor -> new OrcamentoResponse(valor.total().valor())).orElse(null),
                 os.iniciadaEm().orElse(null),
-                os.rejeicaoOrcamento().map(RejeicaoOrcamentoResponse::de).orElse(null));
+                os.rejeicaoOrcamento().map(RejeicaoOrcamentoResponse::de).orElse(null),
+                os.abertaEm().orElse(null));
     }
 }
