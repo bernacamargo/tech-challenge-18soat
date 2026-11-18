@@ -21,12 +21,18 @@ public final class OrdemDeServico {
     private final String veiculoId;
     private StatusOS status;
     private Instant finalizadaEm;
+    private Instant abertaEm;
     private Orcamento orcamento;
     private Instant iniciadaEm;
     private RejeicaoOrcamento rejeicaoOrcamento;
     private final List<ItemDaOS> itens = new ArrayList<>();
 
     public OrdemDeServico(UUID id, String clienteId, String veiculoId) {
+        this(id, clienteId, veiculoId, Instant.now());
+    }
+
+    public OrdemDeServico(UUID id, String clienteId, String veiculoId, Instant abertaEm) {
+        this.abertaEm = Objects.requireNonNull(abertaEm, "Momento da abertura é obrigatório");
         this.id = Objects.requireNonNull(id, "Identificador da OS é obrigatório");
         this.clienteId = validarIdentificador(clienteId, "Cliente");
         this.veiculoId = validarIdentificador(veiculoId, "Veículo");
@@ -43,6 +49,7 @@ public final class OrdemDeServico {
         }
         OrdemDeServico os = new OrdemDeServico(id, clienteId, veiculoId);
         os.status = status;
+        os.abertaEm = null;
         os.finalizadaEm = finalizadaEm;
         return os;
     }
@@ -85,6 +92,21 @@ public final class OrdemDeServico {
         os.iniciadaEm = iniciadaEm;
         os.rejeicaoOrcamento = rejeicaoOrcamento;
         return os;
+    }
+
+    public static OrdemDeServico restaurar(UUID id, String clienteId, String veiculoId,
+                                           StatusOS status, Instant finalizadaEm,
+                                           List<ItemDaOS> itens, Orcamento orcamento,
+                                           Instant iniciadaEm, RejeicaoOrcamento rejeicaoOrcamento,
+                                           Instant abertaEm) {
+        OrdemDeServico os = restaurar(id, clienteId, veiculoId, status, finalizadaEm,
+                itens, orcamento, iniciadaEm, rejeicaoOrcamento);
+        os.abertaEm = abertaEm;
+        return os;
+    }
+
+    public Optional<Instant> abertaEm() {
+        return Optional.ofNullable(abertaEm);
     }
 
     public UUID id() {

@@ -25,6 +25,8 @@ public class OrdemDeServicoEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatusOS status;
+    @Column(name = "aberta_em")
+    private Instant abertaEm;
     @Column(name = "finalizada_em")
     private Instant finalizadaEm;
     @Column(name = "iniciada_em")
@@ -49,6 +51,7 @@ public class OrdemDeServicoEntity {
         entity.clienteId = os.clienteId();
         entity.veiculoId = os.veiculoId();
         entity.status = os.status();
+        entity.abertaEm = os.abertaEm().map(momento -> momento.truncatedTo(ChronoUnit.MICROS)).orElse(null);
         entity.finalizadaEm = os.finalizadaEm().orElse(null);
         entity.iniciadaEm = os.iniciadaEm().map(momento -> momento.truncatedTo(ChronoUnit.MICROS)).orElse(null);
         os.rejeicaoOrcamento().ifPresent(rejeicao -> {
@@ -69,6 +72,6 @@ public class OrdemDeServicoEntity {
         RejeicaoOrcamento rejeicao = orcamentoRejeitadoEm == null ? null
                 : new RejeicaoOrcamento(orcamentoRejeitadoEm, motivoRejeicao);
         return OrdemDeServico.restaurar(id, clienteId, veiculoId, status, finalizadaEm,
-                restaurados, orcamento, iniciadaEm, rejeicao);
+                restaurados, orcamento, iniciadaEm, rejeicao, abertaEm);
     }
 }

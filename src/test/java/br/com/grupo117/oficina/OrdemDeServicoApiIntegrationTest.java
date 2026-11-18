@@ -28,6 +28,7 @@ class OrdemDeServicoApiIntegrationTest extends AbstractIntegrationTest {
         OrdemDeServicoResponse os = criada.getBody();
         assertThat(os).isNotNull();
         assertThat(os.status()).isEqualTo(StatusOS.RECEBIDA);
+        assertThat(os.abertaEm()).isNotNull();
         assertThat(os.clienteId()).isEqualTo("52998224725");
         assertThat(os.veiculoId()).isEqualTo("ABC1D23");
         assertThat(criada.getHeaders().getLocation()).hasToString(PATH + "/" + os.id());

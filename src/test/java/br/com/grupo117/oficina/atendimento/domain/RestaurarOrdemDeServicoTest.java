@@ -24,6 +24,7 @@ class RestaurarOrdemDeServicoTest {
         OrdemDeServico os = OrdemDeServico.restaurar(id, "52998224725", "ABC1D23", status, finalizacao);
         assertThat(os.id()).isEqualTo(id);
         assertThat(os.status()).isEqualTo(status);
+        assertThat(os.abertaEm()).isEmpty();
         assertThat(os.finalizadaEm().orElse(null)).isEqualTo(finalizacao);
     }
 
@@ -34,6 +35,22 @@ class RestaurarOrdemDeServicoTest {
         Instant finalizacao = concluida(status) ? null : MOMENTO;
         assertThatIllegalArgumentException().isThrownBy(
                 () -> OrdemDeServico.restaurar(id, "52998224725", "ABC1D23", status, finalizacao));
+    }
+
+    @Test
+    void registraAberturaEPreservaNasTransicoes() {
+        OrdemDeServico os = new OrdemDeServico(UUID.randomUUID(), "52998224725", "ABC1D23", MOMENTO);
+        os.transicionarPara(StatusOS.EM_DIAGNOSTICO, MOMENTO.plusSeconds(60));
+        assertThat(os.abertaEm()).contains(MOMENTO);
+        Instant antes = Instant.now();
+        OrdemDeServico criadaAgora = new OrdemDeServico(UUID.randomUUID(), "52998224725", "ABC1D23");
+        assertThat(criadaAgora.abertaEm().orElseThrow()).isBetween(antes, Instant.now());
+    }
+
+    @Test
+    void rejeitaAberturaAusenteEmNovaOs() {
+        assertThatNullPointerException().isThrownBy(() ->
+                new OrdemDeServico(UUID.randomUUID(), "52998224725", "ABC1D23", null));
     }
 
     @Test
