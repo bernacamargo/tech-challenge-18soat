@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/rejeicao").permitAll()
                         .requestMatchers("/api/clientes", "/api/clientes/**", "/api/veiculos", "/api/veiculos/**")
                         .hasAnyRole("ATENDENTE", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/ordens-de-servico/*").hasRole("ADMINISTRADOR")
                         .anyRequest().hasAnyRole("ATENDENTE", "MECANICO", "ADMINISTRADOR"))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.authenticationManager(
                         new UsuarioAdministrativoAuthenticationManager(autenticarUsuarioAdministrativo))))

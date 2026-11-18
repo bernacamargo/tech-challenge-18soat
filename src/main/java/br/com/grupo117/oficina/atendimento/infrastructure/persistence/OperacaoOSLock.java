@@ -22,6 +22,7 @@ public class OperacaoOSLock {
         OrdemDeServicoEntity entity = em.find(OrdemDeServicoEntity.class, id, LockModeType.PESSIMISTIC_WRITE);
         if (entity == null) throw new OrdemDeServicoNaoEncontradaException(id);
         em.refresh(entity, LockModeType.PESSIMISTIC_WRITE);
+        if (entity.excluida()) throw new OrdemDeServicoNaoEncontradaException(id);
     }
 
     public void bloquearPeca(UUID id) {

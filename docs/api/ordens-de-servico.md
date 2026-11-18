@@ -239,3 +239,17 @@ campos atuais. Os perfis autorizados na listagem continuam ATENDENTE, MECANICO e
 A migration V11 e a política de registros legados estão documentadas no ADR 0023.
 Os testes ListagemOrdemDeServicoIntegrationTest e AberturaOrdemDeServicoMigrationIntegrationTest
 verificam ordenação, preservação do histórico, datas e atualização de bancos existentes.
+
+## Exclusão lógica de OS
+
+DELETE /api/ordens-de-servico/{id} exige JWT com perfil ADMINISTRADOR e retorna 204.
+Sem autenticação retorna 401. ATENDENTE e MECANICO recebem 403. UUID inválido retorna 400,
+e uma OS inexistente ou já excluída retorna 404.
+
+A exclusão grava excluida_em e preserva o histórico no banco. Ela pode ser feita em qualquer
+status. A OS fica oculta na listagem e nas consultas individuais, inclusive a consulta pública,
+e os comandos posteriores respondem 404.
+
+Reservas ainda ativas são canceladas, liberando saldo. Reservas baixadas preservam o estoque
+já consumido. Notificações de orçamento pendentes são canceladas. Essas operações e a marca
+de exclusão são feitas em uma única transação. Ver ADR 0024.
