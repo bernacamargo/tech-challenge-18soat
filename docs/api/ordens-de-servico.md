@@ -8,7 +8,7 @@ A inclusão de itens consulta o catálogo e reserva peças no estoque; a aprova�
 | Método | Rota | Perfis | Comportamento |
 |---|---|---|---|
 | POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida com listas opcionais de serviços e peças |
-| GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista ordenada pelo UUID |
+| GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista em andamento por prioridade de status e antiguidade |
 | GET | `/api/ordens-de-servico/{id}` | ATENDENTE, MECANICO, ADMINISTRADOR | Detalhe com itens/orçamento ou 404 |
 | POST | `/api/ordens-de-servico/{id}/diagnostico` | MECANICO, ADMINISTRADOR | Recebida → Em diagnóstico |
 | POST | `/api/ordens-de-servico/{id}/diagnostico/conclusao` | MECANICO, ADMINISTRADOR | Com itens, gera orçamento e vai para Aguardando aprovação |
@@ -232,3 +232,25 @@ O Swagger foi verificado por HTTP em `/v3/api-docs` nos testes. A exportação p
 existente tenta acessar uma aplicação em localhost:8080; sem essa aplicação, registra
 `Connection refused` e não gera o arquivo, embora o build e os testes sejam aprovados.
 Isso não constitui evidência de exportação do JSON durante este comando.
+
+## Listagem priorizada — Fase 2
+
+GET /api/ordens-de-servico ordena primeiro por status, nesta sequência.
+
+1. Em execução.
+2. Aguardando aprovação.
+3. Em diagnóstico.
+4. Recebida.
+
+Dentro do mesmo status, a abertura mais antiga vem primeiro. O campo abertaEm aparece nas
+respostas administrativas em UTC e é preservado nas atualizações da OS. Registros legados
+mantêm esse campo nulo e vêm antes das OS datadas do mesmo status. UUID textual crescente
+desempata datas iguais e registros legados.
+
+Finalizadas e entregues ficam fora da listagem. Continuam persistidas e acessíveis pelo
+detalhe administrativo e pela consulta pública individual. A consulta pública mantém seus
+campos atuais. Os perfis autorizados na listagem continuam ATENDENTE, MECANICO e ADMINISTRADOR.
+
+A migration V11 e a política de registros legados estão documentadas no ADR 0023.
+Os testes ListagemOrdemDeServicoIntegrationTest e AberturaOrdemDeServicoMigrationIntegrationTest
+verificam ordenação, preservação do histórico, datas e atualização de bancos existentes.
