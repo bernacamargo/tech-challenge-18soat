@@ -1,6 +1,7 @@
 package br.com.grupo117.oficina.atendimento.infrastructure.integration;
 
 import br.com.grupo117.oficina.atendimento.application.port.BaixaEstoquePort;
+import br.com.grupo117.oficina.atendimento.application.port.CancelamentoReservasOSPort;
 import br.com.grupo117.oficina.atendimento.application.port.DevolucaoEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Transactional(propagation = Propagation.MANDATORY)
-public class EstoqueOSAdapter implements ReservaEstoquePort, BaixaEstoquePort, DevolucaoEstoquePort {
+public class EstoqueOSAdapter implements ReservaEstoquePort, BaixaEstoquePort, DevolucaoEstoquePort, CancelamentoReservasOSPort {
     private final EstoqueDaOrdemDeServico estoque;
     private final PecaRepositorio pecas;
     private final OrdemDeServicoRepositorio ordens;
@@ -103,6 +104,17 @@ public class EstoqueOSAdapter implements ReservaEstoquePort, BaixaEstoquePort, D
         if (depois.size() != reservas.size() || !depois.stream().allMatch(r -> r.status().equals("CANCELADA"))) {
             throw inconsistente();
         }
+    }
+
+    @Override
+    public void cancelarReservasAtivas(UUID osId) {
+        locks.bloquearOrdem(osId);
+        vinculos.buscarReservas(osId).stream()
+                .filter(reserva -> reserva.status().equals("ATIVA"))
+                .map(Reserva::pecaId).distinct()
+                .sorted(java.util.Comparator.comparing(UUID::toString))
+                .forEach(locks::bloquearPeca);
+        estoque.cancelarReservasDaOrdemDeServico(osId);
     }
 
     private void validarCorrespondencia(List<ItemDaOS> itens, List<Vinculo> links, List<Reserva> reservas) {

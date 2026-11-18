@@ -27,6 +27,8 @@ public class OrdemDeServicoEntity {
     private StatusOS status;
     @Column(name = "aberta_em")
     private Instant abertaEm;
+    @Column(name = "excluida_em")
+    private Instant excluidaEm;
     @Column(name = "finalizada_em")
     private Instant finalizadaEm;
     @Column(name = "iniciada_em")
@@ -61,6 +63,10 @@ public class OrdemDeServicoEntity {
         entity.itens = new ArrayList<>(os.itens().stream().map(ItemDaOSEmbeddable::de).toList());
         entity.orcamentoTotal = os.orcamento().map(orcamento -> orcamento.total().valor()).orElse(null);
         return entity;
+    }
+
+    public boolean excluida() {
+        return excluidaEm != null;
     }
 
     public OrdemDeServico paraDominio() {

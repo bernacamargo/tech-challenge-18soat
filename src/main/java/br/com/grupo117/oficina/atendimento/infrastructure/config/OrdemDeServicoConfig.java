@@ -15,6 +15,9 @@ import br.com.grupo117.oficina.atendimento.application.usecase.ConcluirServicos;
 import br.com.grupo117.oficina.atendimento.application.usecase.RegistrarEntrega;
 import br.com.grupo117.oficina.atendimento.application.usecase.GerarOrcamento;
 import br.com.grupo117.oficina.atendimento.application.usecase.SubmeterOrdemDeServico;
+import br.com.grupo117.oficina.atendimento.application.port.ExclusaoOSPort;
+import br.com.grupo117.oficina.atendimento.application.port.CancelamentoReservasOSPort;
+import br.com.grupo117.oficina.atendimento.application.usecase.ExcluirOrdemDeServico;
 import java.time.Clock;
 import br.com.grupo117.oficina.atendimento.application.port.NotificacaoPort;
 import java.time.Duration;
@@ -23,6 +26,12 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OrdemDeServicoConfig {
+    @Bean
+    ExcluirOrdemDeServico excluirOrdemDeServico(OrdemDeServicoRepositorio ordens,
+                                               CancelamentoReservasOSPort estoque, ExclusaoOSPort exclusao) {
+        return new ExcluirOrdemDeServico(ordens, estoque, exclusao);
+    }
+
     @Bean
     CriarOrdemDeServico criarOrdemDeServico(ClienteRepositorio clientes, CadastrarVeiculo cadastrarVeiculo,
                                            VeiculoRepositorio veiculos, OrdemDeServicoRepositorio ordens,
