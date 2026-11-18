@@ -35,7 +35,8 @@ public class OrcamentoEmailDispatcher {
     public void enviarPendentes() {
         var pendentes = jdbc.query("""
                 SELECT n.id, COALESCE(n.destinatario, c.email) AS email, n.assunto, n.corpo,
-                    (os.status <> 'AGUARDANDO_APROVACAO' OR os.orcamento_rejeitado_em IS NOT NULL) AS decidida
+                    (os.excluida_em IS NOT NULL OR os.status <> 'AGUARDANDO_APROVACAO'
+                        OR os.orcamento_rejeitado_em IS NOT NULL) AS decidida
                 FROM notificacao_orcamento n JOIN cliente c ON c.cpf_cnpj = n.cliente_id
                 JOIN ordem_de_servico os ON os.id = n.ordem_de_servico_id
                 WHERE n.enviada_em IS NULL AND n.cancelada_em IS NULL
