@@ -1,6 +1,7 @@
 package br.com.grupo117.oficina.atendimento.infrastructure.service;
 
 import br.com.grupo117.oficina.atendimento.application.usecase.CriarOrdemDeServico;
+import br.com.grupo117.oficina.atendimento.application.usecase.CriarOrdemDeServico.ItemInicial;
 import br.com.grupo117.oficina.atendimento.application.usecase.DetalharOrdemDeServico;
 import br.com.grupo117.oficina.atendimento.application.usecase.ListarOrdensDeServico;
 import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
@@ -58,6 +59,11 @@ public class OrdemDeServicoService {
     public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
                                UUID servicoId, UUID pecaId, Integer quantidade, String email) {
         return criar.criar(documento, nome, placa, marca, modelo, ano, servicoId, pecaId, quantidade, email);
+    }
+
+    public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
+                               List<ItemInicial> itensIniciais, String email) {
+        return criar.criar(documento, nome, placa, marca, modelo, ano, itensIniciais, email);
     }
 
     @Transactional(readOnly = true)

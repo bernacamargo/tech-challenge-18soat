@@ -7,7 +7,7 @@ A inclusão de itens consulta o catálogo e reserva peças no estoque; a aprova�
 
 | Método | Rota | Perfis | Comportamento |
 |---|---|---|---|
-| POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida; pode apontar um serviço ou uma peça |
+| POST | `/api/ordens-de-servico` | ATENDENTE, ADMINISTRADOR | Abre OS em Recebida com listas opcionais de serviços e peças |
 | GET | `/api/ordens-de-servico` | ATENDENTE, MECANICO, ADMINISTRADOR | Lista em andamento por prioridade de status e antiguidade |
 | GET | `/api/ordens-de-servico/{id}` | ATENDENTE, MECANICO, ADMINISTRADOR | Detalhe com itens/orçamento ou 404 |
 | POST | `/api/ordens-de-servico/{id}/diagnostico` | MECANICO, ADMINISTRADOR | Recebida → Em diagnóstico |
@@ -20,7 +20,7 @@ A inclusão de itens consulta o catálogo e reserva peças no estoque; a aprova�
 | POST | `/api/acompanhamento/ordens-de-servico/{id}/aprovacao` | público | Cliente aprova, baixa reservas e inicia execução |
 | POST | `/api/acompanhamento/ordens-de-servico/{id}/rejeicao` | público | Cliente rejeita e devolve as reservas ao estoque |
 
-Requisição de criação:
+Exemplo de abertura com serviços e peças:
 
 ```json
 {
@@ -29,7 +29,13 @@ Requisição de criação:
   "placa": "ABC1D23",
   "marca": "Fiat",
   "modelo": "Uno",
-  "ano": 2012
+  "ano": 2012,
+  "servicos": [
+    {"servicoId": "b165d0ea-bd78-496c-8698-c6405db37521", "quantidade": 1}
+  ],
+  "pecas": [
+    {"pecaId": "7f4496df-9cbc-4b76-b52c-99eed78ef8b1", "quantidade": 2}
+  ]
 }
 ```
 
@@ -37,7 +43,16 @@ A resposta contém `id`, `clienteId` (documento normalizado), `veiculoId` (placa
 `status`, `finalizadaEm` (nulo até a conclusão), `itens`, `orcamento`, `iniciadaEm` e
 `rejeicaoOrcamento`.
 Cada item contém UUID, referência ao catálogo, tipo, descrição, quantidade, preço unitário e
-subtotal. O orçamento contém o total; antes da geração é nulo e OS nova tem itens vazios. Criação retorna 201 e cabeçalho Location.
+subtotal. O orçamento fica nulo até ser gerado. A criação retorna 201, o UUID no campo `id`
+e o cabeçalho `Location` com a URL de detalhe.
+
+Use identificadores existentes no catálogo e quantidades inteiras positivas. As listas são
+opcionais. A resposta traz primeiro os serviços, depois as peças, na ordem de cada lista.
+Cada peça gera uma reserva na mesma transação da abertura. Item inexistente ou inválido retorna
+400 e saldo insuficiente retorna 409. Em ambos os casos, a abertura inteira é revertida.
+
+O formato legado com `servicoId` ou `pecaId` e `quantidade` na raiz continua disponível.
+Uma requisição que mistura esse formato com as listas retorna 400.
 Veículo já cadastrado deve pertencer ao cliente informado. As três ações da #35 não recebem corpo e retornam 200 com a OS atualizada.
 UUID inválido retorna 400, OS inexistente 404, ausência de JWT 401 e perfil não autorizado 403.
 Transição inválida, incluindo repetição, retorna 409 com `mensagem`, preservando o estado.
@@ -198,7 +213,7 @@ Falha de persistência reverte a baixa, a devolução e a decisão juntas. Ver A
 ## Executar o fluxo no Swagger
 
 1. Autorizar com JWT de administrador e cadastrar serviço em `/api/servicos` e peça em `/api/pecas`.
-2. Abrir a OS, opcionalmente apontando `servicoId` ou `pecaId`, e incluir serviços com MECANICO.
+2. Abrir a OS com os identificadores do catálogo nas listas `servicos` e `pecas`. Itens ainda podem ser incluídos pelas rotas próprias antes da geração do orçamento.
 3. Iniciar e concluir o diagnóstico com MECANICO/ADMINISTRADOR, ou submeter a OS recebida.
 4. Sem JWT, aprovar ou rejeitar em `/api/acompanhamento/ordens-de-servico/{id}/aprovacao` ou `.../rejeicao`.
 5. Consultar a OS e o saldo da peça; concluir a execução com MECANICO e entregar com ATENDENTE.

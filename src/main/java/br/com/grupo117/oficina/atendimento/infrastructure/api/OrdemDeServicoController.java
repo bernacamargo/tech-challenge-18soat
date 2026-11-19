@@ -26,11 +26,19 @@ public class OrdemDeServicoController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ATENDENTE', 'ADMINISTRADOR')")
-    @Operation(summary = "Abre uma OS em Recebida", description = "Identifica cliente e veículo. Se servicoId ou pecaId vier preenchido, aponta o item da lista de disponibilidade; peça reserva estoque.")
+    @Operation(summary = "Abre uma OS em Recebida",
+            description = "Identifica cliente e veículo e inclui os serviços e peças informados. "
+                    + "A abertura e as reservas de estoque são gravadas em uma única transação.")
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "OS criada"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou item ausente no catálogo"),
+            @ApiResponse(responseCode = "409", description = "Estoque insuficiente para uma peça")})
     public ResponseEntity<OrdemDeServicoResponse> criar(@Valid @RequestBody OrdemDeServicoRequest request) {
-        OrdemDeServico os = service.criar(request.documento(), request.nome(), request.placa(),
-                request.marca(), request.modelo(), request.ano(), request.servicoId(), request.pecaId(),
-                request.quantidade(), request.email());
+        OrdemDeServico os = request.usaListasDeItens()
+                ? service.criar(request.documento(), request.nome(), request.placa(), request.marca(),
+                        request.modelo(), request.ano(), request.itensIniciais(), request.email())
+                : service.criar(request.documento(), request.nome(), request.placa(), request.marca(),
+                        request.modelo(), request.ano(), request.servicoId(), request.pecaId(),
+                        request.quantidade(), request.email());
         return ResponseEntity.created(URI.create("/api/ordens-de-servico/" + os.id()))
                 .body(OrdemDeServicoResponse.de(os));
     }

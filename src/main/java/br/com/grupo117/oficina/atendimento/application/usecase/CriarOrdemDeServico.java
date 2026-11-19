@@ -13,6 +13,8 @@ import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
 import br.com.grupo117.oficina.atendimento.domain.Placa;
 import br.com.grupo117.oficina.atendimento.domain.TipoItemOS;
 import br.com.grupo117.oficina.atendimento.domain.Veiculo;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -48,6 +50,23 @@ public final class CriarOrdemDeServico {
 
     public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
                                UUID servicoId, UUID pecaId, Integer quantidade, String email) {
+        if (servicoId == null && pecaId == null) {
+            return criar(documento, nome, placa, marca, modelo, ano, List.of(), email);
+        }
+        if (servicoId != null && pecaId != null) {
+            throw new IllegalArgumentException("Aponte um serviço ou uma peça");
+        }
+        if (quantidade == null || quantidade <= 0) {
+            throw new IllegalArgumentException("Quantidade deve ser positiva");
+        }
+        ItemInicial item = servicoId != null
+                ? new ItemInicial(TipoItemOS.SERVICO, servicoId, quantidade)
+                : new ItemInicial(TipoItemOS.PECA, pecaId, quantidade);
+        return criar(documento, nome, placa, marca, modelo, ano, List.of(item), email);
+    }
+
+    public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano,
+                               List<ItemInicial> itensIniciais, String email) {
         CpfCnpj clienteId = CpfCnpj.de(documento);
         Placa veiculoId = Placa.de(placa);
         Veiculo existente = veiculos.buscarPorPlaca(veiculoId).orElse(null);
@@ -60,28 +79,38 @@ public final class CriarOrdemDeServico {
             cadastrarVeiculo.cadastrar(documento, placa, marca, modelo, ano);
         }
         OrdemDeServico os = ordens.salvar(new OrdemDeServico(UUID.randomUUID(), clienteId.digitos(), veiculoId.valor()));
-        if (servicoId == null && pecaId == null) {
+        if (itensIniciais.isEmpty()) {
             return os;
         }
-        apontarItem(os, servicoId, pecaId, quantidade);
+
+        List<ItemDaOS> itens = itensIniciais.stream().map(this::criarItem).toList();
+        // Adquire locks na mesma ordem usada na baixa e na devolução, mesmo se os pedidos
+        // listarem as peças em ordens diferentes.
+        itens.stream()
+                .filter(item -> item.tipo() == TipoItemOS.PECA)
+                .sorted(Comparator.comparing(item -> item.catalogoId().toString()))
+                .forEach(item -> ItensDoCatalogo.reservarPeca(estoque, os.id(), item));
+        itens.forEach(os::incluirItem);
         return ordens.salvar(os);
     }
 
-    private void apontarItem(OrdemDeServico os, UUID servicoId, UUID pecaId, Integer quantidade) {
-        if (servicoId != null && pecaId != null) {
-            throw new IllegalArgumentException("Aponte um serviço ou uma peça");
+    private ItemDaOS criarItem(ItemInicial item) {
+        UUID catalogoId = item.catalogoId();
+        var resultado = switch (item.tipo()) {
+            case SERVICO -> catalogo.buscarServico(catalogoId);
+            case PECA -> catalogo.buscarPeca(catalogoId);
+        };
+        ItemCatalogo dados = ItensDoCatalogo.exigirItem(resultado, catalogoId);
+        return ItensDoCatalogo.criar(dados, catalogoId, item.tipo(), item.quantidade());
+    }
+
+    public record ItemInicial(TipoItemOS tipo, UUID catalogoId, int quantidade) {
+        public ItemInicial {
+            Objects.requireNonNull(tipo, "Tipo do item é obrigatório");
+            Objects.requireNonNull(catalogoId, "Identificador do catálogo é obrigatório");
+            if (quantidade <= 0) {
+                throw new IllegalArgumentException("Quantidade deve ser positiva");
+            }
         }
-        if (quantidade == null || quantidade <= 0) {
-            throw new IllegalArgumentException("Quantidade deve ser positiva");
-        }
-        if (servicoId != null) {
-            ItemCatalogo dados = ItensDoCatalogo.exigirItem(catalogo.buscarServico(servicoId), servicoId);
-            os.incluirItem(ItensDoCatalogo.criar(dados, servicoId, TipoItemOS.SERVICO, quantidade));
-            return;
-        }
-        ItemCatalogo dados = ItensDoCatalogo.exigirItem(catalogo.buscarPeca(pecaId), pecaId);
-        ItemDaOS item = ItensDoCatalogo.criar(dados, pecaId, TipoItemOS.PECA, quantidade);
-        ItensDoCatalogo.reservarPeca(estoque, os.id(), item);
-        os.incluirItem(item);
     }
 }
