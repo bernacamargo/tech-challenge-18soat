@@ -1,0 +1,11 @@
+aws_region  = "us-east-1"
+environment = "fase2"
+project_name = "oficina"
+
+# Senha obrigatória no apply — NÃO commitar terraform.tfvars com valor real.
+# Alternativa: export TF_VAR_rds_password='...'
+rds_password = "troque-esta-senha"
+
+# Opcionais (defaults em variables.tf):
+# eks_node_desired_size = 2
+# rds_instance_class    = "db.t4g.micro"
