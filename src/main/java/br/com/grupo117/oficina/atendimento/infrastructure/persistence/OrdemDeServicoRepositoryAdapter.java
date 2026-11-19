@@ -2,6 +2,7 @@ package br.com.grupo117.oficina.atendimento.infrastructure.persistence;
 
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.domain.OrdemDeServico;
+import br.com.grupo117.oficina.atendimento.application.usecase.OrdemDeServicoNaoEncontradaException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,17 +20,20 @@ public class OrdemDeServicoRepositoryAdapter implements OrdemDeServicoRepositori
     @Override
     @Transactional(readOnly = true)
     public Optional<OrdemDeServico> buscarPorId(UUID id) {
-        return jpa.findById(id).map(OrdemDeServicoEntity::paraDominio);
+        return jpa.findByIdAndExcluidaEmIsNull(id).map(OrdemDeServicoEntity::paraDominio);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrdemDeServico> listar() {
-        return jpa.findAll(Sort.by("id")).stream().map(OrdemDeServicoEntity::paraDominio).toList();
+        return jpa.findAllByExcluidaEmIsNull(Sort.by("id")).stream().map(OrdemDeServicoEntity::paraDominio).toList();
     }
 
     @Override
     public OrdemDeServico salvar(OrdemDeServico os) {
+        if (jpa.existsByIdAndExcluidaEmIsNotNull(os.id())) {
+            throw new OrdemDeServicoNaoEncontradaException(os.id());
+        }
         return jpa.saveAndFlush(OrdemDeServicoEntity.de(os)).paraDominio();
     }
 }

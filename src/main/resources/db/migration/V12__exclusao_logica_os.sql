@@ -1,0 +1,1 @@
+ALTER TABLE ordem_de_servico ADD COLUMN excluida_em TIMESTAMP WITH TIME ZONE;
