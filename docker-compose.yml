@@ -1,3 +1,5 @@
+# Desenvolvimento local (perfis: dev, full, observability).
+# Cluster AWS / Kubernetes: ver /infra (Terraform) e /k8s (manifestos) — Fase 2, ADR 0025.
 services:
   postgres:
     image: postgres:17-alpine

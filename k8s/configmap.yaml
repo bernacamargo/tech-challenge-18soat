@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oficina-config
+  namespace: oficina
+  labels:
+    app.kubernetes.io/name: oficina
+data:
+  # Substitua pelo output jdbc_url_template do Terraform (infra/).
+  DB_URL: "jdbc:postgresql://oficina-fase2-postgres.CHANGEME.rds.amazonaws.com:5432/oficina"
+  # Issuer público (claim iss do token) e JWKS alcançável pelos pods — issue #115.
+  OAUTH2_ISSUER_URI: "https://keycloak.example.local/realms/oficina"
+  OAUTH2_JWK_SET_URI: "https://keycloak.example.local/realms/oficina/protocol/openid-connect/certs"
+  # SMTP/MailPit não fazem parte do mínimo AWS; desliga notificações até haver relay.
+  NOTIFICACOES_HABILITADAS: "false"
+  SMTP_HOST: ""
+  SMTP_PORT: "1025"
+  SMTP_FROM: "no-reply@oficina.local"
