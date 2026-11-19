@@ -35,6 +35,19 @@
              exclusoes para manter a medida que pastas novas surgirem. -->
         <sonar.sources>src/main/java</sonar.sources>
         <sonar.tests>src/test/java</sonar.tests>
+
+        <!--
+            Sobrescritas de versoes gerenciadas pelo Boot 3.5.16 para absorver correcoes
+            de CVEs (docs/relatorios/relatorio-vulnerabilidades-2026-10-30.md, secao 4).
+            Pendente de release upstream: Spring Framework 6.2.20, Spring Security 6.5.12
+            e Spring Data 3.5.14 ainda nao foram publicados no Maven Central; revisar
+            ao subir o proximo patch do Boot (3.5.17+).
+        -->
+        <tomcat.version>10.1.61</tomcat.version>                <!-- CVEs de auth/DoS no Tomcat 10.1.55 -->
+        <commons-lang3.version>3.18.0</commons-lang3.version>  <!-- CVE-2025-48924 -->
+        <postgresql.version>42.7.12</postgresql.version>       <!-- CVE-2026-54291 -->
+        <jackson-bom.version>2.21.5</jackson-bom.version>      <!-- CVE-2026-54515 -->
+        <log4j2.version>2.25.5</log4j2.version>                <!-- CVE-2026-34479/34477/49844/34481 -->
     </properties>
 
     <dependencies>
