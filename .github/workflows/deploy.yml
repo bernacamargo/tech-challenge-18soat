@@ -1,0 +1,100 @@
+# Deploy Fase 2: migrations Flyway + kubectl apply dos manifests em /k8s.
+# Mapa CI/CD do enunciado: ci.yml (build/testes) + release.yml (imagem GHCR) + este workflow.
+# Sem credenciais no repositório — GitHub Environment `aws` + OIDC (ADR 0025).
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag da imagem no GHCR (ex.: 0.1.0 ou sha-abcdef0), sem o prefixo v"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/tech-challenge-18soat
+  K8S_NAMESPACE: oficina
+  K8S_DEPLOYMENT: oficina
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: aws
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir secrets do Environment aws
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in AWS_ROLE_ARN DB_URL DB_USERNAME DB_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret '$name' ausente no Environment 'aws'."
+              missing=1
+            fi
+          done
+          if [ -z "${{ vars.AWS_REGION }}" ] || [ -z "${{ vars.EKS_CLUSTER_NAME }}" ]; then
+            echo "::error::Vars AWS_REGION e EKS_CLUSTER_NAME sao obrigatorias no Environment 'aws'."
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Configure o Environment 'aws' (OIDC + secrets) antes de rodar o deploy. Ver docs em README § CI/CD Fase 2."
+            exit 1
+          fi
+
+      - name: Configurar credenciais AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.31.0"
+
+      - name: kubeconfig do EKS
+        run: |
+          set -euo pipefail
+          aws eks update-kubeconfig \
+            --name "${{ vars.EKS_CLUSTER_NAME }}" \
+            --region "${{ vars.AWS_REGION }}"
+
+      - name: Migrations Flyway (deploy do banco)
+        env:
+          FLYWAY_URL: ${{ secrets.DB_URL }}
+          FLYWAY_USER: ${{ secrets.DB_USERNAME }}
+          FLYWAY_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # DB_URL no secret deve ser JDBC (jdbc:postgresql://host:5432/oficina).
+          docker run --rm \
+            -v "${{ github.workspace }}/src/main/resources/db/migration:/flyway/sql:ro" \
+            -e FLYWAY_URL \
+            -e FLYWAY_USER \
+            -e FLYWAY_PASSWORD \
+            flyway/flyway:10-alpine \
+            -locations=filesystem:/flyway/sql \
+            -connectRetries=10 \
+            migrate
+
+      - name: Aplicar manifestos Kubernetes
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/
+          kubectl -n "${{ env.K8S_NAMESPACE }}" set image \
+            "deployment/${{ env.K8S_DEPLOYMENT }}" \
+            "oficina=${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}"
+          kubectl -n "${{ env.K8S_NAMESPACE }}" rollout status \
+            "deployment/${{ env.K8S_DEPLOYMENT }}" \
+            --timeout=300s
+          kubectl -n "${{ env.K8S_NAMESPACE }}" get pods,svc,hpa
