@@ -12,7 +12,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Seguranca da API: stateless, CSRF off (API REST). Health, Swagger e /error sao publicos.
+ * Seguranca da API: stateless, CSRF off (API REST). Health (incl. probes
+ * /actuator/health/**), Swagger e /error sao publicos.
  * /error precisa ser anonimo para uma falha na aprovacao publica continuar respondendo 500.
  * Consulta, aprovacao e rejeicao da OS pelo UUID sao publicas nesta mesma cadeia (ADR 0015).
  * As rotas administrativas exigem JWT do Keycloak (ADR 0006) com um perfil da oficina:
@@ -33,7 +34,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/info", "/api/health", "/error").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/api/health", "/error").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/acompanhamento/ordens-de-servico/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/acompanhamento/ordens-de-servico/*/aprovacao").permitAll()
