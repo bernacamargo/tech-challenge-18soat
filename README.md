@@ -46,7 +46,8 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 - **Testcontainers** (testes de integração com PostgreSQL real)
 - **JaCoCo** (gate de 80% de cobertura em domain/application), **SonarCloud** (qualidade),
   **OWASP Dependency-Check** (análise de vulnerabilidades)
-- **Docker** (Dockerfile multi-stage + docker-compose), **GitHub Actions** (CI + release por tag no GHCR)
+- **Docker** (Dockerfile multi-stage + docker-compose), **GitHub Actions** (CI + release no GHCR + deploy EKS)
+- **Terraform** (`/infra`: EKS + RDS) e **Kubernetes** (`/k8s`: Deployment, Service, ConfigMap, Secret, HPA) — [ADR 0025](docs/adr/0025-aws-eks-rds.md)
 
 ## Pré-requisitos
 
@@ -313,6 +314,8 @@ Mais detalhes da integração em [ADR 0019](docs/adr/0019-integracao-operacional
 docs/adr/          decisões arquiteturais (ADRs)
 docs/ddd/          linguagem ubíqua, glossário e event storming por fluxo
 docs/diagramas/    diagramas C4 e de domínio
+infra/             Terraform AWS (EKS + RDS) — Fase 2
+k8s/               manifestos Kubernetes (Deployment, Service, ConfigMap, Secret, HPA)
 keycloak/          realm-oficina.json e postgres-init.sql (realm versionado, sem senhas nem chaves) reais: os usuários usam só a senha de demonstração
 src/main/java/br/com/grupo117/oficina/
   atendimento/     contexto core (OS, orçamento) — domain/application/infrastructure
@@ -333,8 +336,9 @@ src/test/java/     testes unitários e de integração (Testcontainers)
 ## Release (imagem no GHCR)
 
 Uma release é o contrato imutável de uma versão: tag git + imagem no GHCR + GitHub Release
-+ relatório de vulnerabilidades. Não há deploy neste fluxo; a hospedagem na AWS fica para um
-ADR futuro. Decisão: [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md). O Compose local
++ relatório de vulnerabilidades. **Não há deploy neste fluxo** — o deploy na AWS é o workflow
+separado [deploy](#cicd-fase-2-ci--release--deploy) ([ADR 0025](docs/adr/0025-aws-eks-rds.md)).
+Decisão de release: [ADR 0019](docs/adr/0019-release-por-tag-ghcr.md). O Compose local
 continua com `build: .` e não puxa a imagem publicada.
 
 A versão publicada é a da tag (`v1.2.3` → imagem `:1.2.3`). O `pom.xml` permanece
@@ -405,6 +409,36 @@ Correção posterior entra por PR em `main` e sai na versão seguinte.
 
 O workflow lê o YAML do commit da tag. Mudança em `release.yml` vale para as tags cortadas
 depois que esse commit estiver em `main`.
+
+## CI/CD Fase 2 (ci + release + deploy)
+
+O enunciado pede build, testes, imagem Docker, deploy do banco, apply dos YAML e deploy no
+cluster. No repositório isso fica em **três workflows** (contrato da [ADR 0025](docs/adr/0025-aws-eks-rds.md)):
+
+| Exigência | Workflow | Quando |
+|---|---|---|
+| Build + testes (+ cobertura/Sonar) | [`ci.yml`](.github/workflows/ci.yml) | PR e push em `main` |
+| Build da imagem Docker | [`release.yml`](.github/workflows/release.yml) | tag `vX.Y.Z` |
+| Deploy do banco (Flyway) + `kubectl apply` + imagem no cluster | [`deploy.yml`](.github/workflows/deploy.yml) | `workflow_dispatch` |
+
+### Deploy (Environment `aws`)
+
+Pré-requisitos (nada disso vai no Git):
+
+1. Terraform aplicado (`infra/`) — outputs `eks_cluster_name` e JDBC.
+2. Manifestos preenchidos (`k8s/`) e Secret real no cluster (não use o placeholder).
+3. GitHub → Settings → Environments → **`aws`** com:
+   - **Vars:** `AWS_REGION`, `EKS_CLUSTER_NAME`
+   - **Secrets:** `AWS_ROLE_ARN` (role OIDC do Actions), `DB_URL` (JDBC), `DB_USERNAME`, `DB_PASSWORD` (usuário com DDL para o Flyway)
+4. Trust OIDC da role AWS para este repositório (`token.actions.githubusercontent.com`).
+
+Disparo manual:
+
+1. Actions → **deploy** → Run workflow
+2. Informe `image_tag` (ex.: `0.1.0`, sem o `v`)
+3. O job: autentica via OIDC → `aws eks update-kubeconfig` → Flyway `migrate` → `kubectl apply -f k8s/` → `kubectl set image` → `rollout status`
+
+Sem Environment/OIDC configurados o job falha cedo no passo de conferência dos secrets — o YAML e esta seção fecham o entregável; o apply real depende da conta AWS.
 
 ## Análise de vulnerabilidades
 

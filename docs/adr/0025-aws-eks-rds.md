@@ -12,7 +12,7 @@ A Fase 2 exige cluster Kubernetes (local ou cloud), banco, IaC em `/infra`, mani
 
 1. Provisionar na **AWS** via Terraform em [`infra/`](../../infra/): VPC mínima, **EKS** gerenciado e **RDS PostgreSQL 17**.
 2. Manter a imagem da aplicação no **GHCR** (ADR 0019); o cluster puxa `ghcr.io/bernacamargo/tech-challenge-18soat:<versão>`.
-3. O workflow de **release não ganha passos de hospedagem**. O deploy fica em workflow próprio (`deploy.yml`), autenticado por **OIDC** na AWS, aplicando Flyway e os manifests de `/k8s`.
+3. O workflow de **release não ganha passos de hospedagem**. O deploy fica em [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) (`workflow_dispatch`, Environment `aws`), autenticado por **OIDC**, aplicando Flyway e os manifests de `/k8s`. O mapa do enunciado fica: `ci.yml` (build/testes) + `release.yml` (imagem) + `deploy.yml` (banco + cluster).
 4. Keycloak, MailPit e observabilidade **não** entram no Terraform mínimo da Fase 2; issuer/JWKS e SMTP ficam configuráveis por ConfigMap/Secret (issue #115).
 
 ## Consequências
