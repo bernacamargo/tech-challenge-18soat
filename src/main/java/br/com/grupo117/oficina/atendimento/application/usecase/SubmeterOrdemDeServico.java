@@ -24,7 +24,7 @@ public final class SubmeterOrdemDeServico {
                 .orElseThrow(() -> new OrdemDeServicoNaoEncontradaException(id));
         os.submeter();
         OrdemDeServico salva = ordens.salvar(os);
-        notificacoes.agendarOrcamento(salva);
+        notificacoes.agendar(salva);
         return salva;
     }
 }

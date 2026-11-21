@@ -41,7 +41,7 @@ as camadas `domain` (regras de negócio puras), `application` (casos de uso e po
 - **Java 21**, **Spring Boot 3.5.x** (Web, Data JPA, Security, Validation, Actuator)
 - **PostgreSQL 17** + **Flyway** (migrations) + Spring Data JPA
 - **springdoc-openapi** (Swagger UI)
-- **Notificações por e-mail**: servidor SMTP local **MailPit** em Docker (envio real via SMTP, e-mails visualizados em UI própria), compartilhado pela aplicação (orçamento, [ADR 0007](docs/adr/0007-notificacoes-smtp-local.md) e [ADR 0017](docs/adr/0017-notificacao-orcamento-email.md)) e pelo Keycloak (e-mails de ação de conta)
+- **Notificações por e-mail**: servidor SMTP local **MailPit** em Docker (envio real via SMTP, e-mails visualizados em UI própria), compartilhado pela aplicação (cada mudança de status da OS, [ADR 0007](docs/adr/0007-notificacoes-smtp-local.md), [ADR 0017](docs/adr/0017-notificacao-orcamento-email.md) e [ADR 0025](docs/adr/0025-notificacao-por-status-da-os.md)) e pelo Keycloak (e-mails de ação de conta)
 - **Keycloak** (autenticação e Perfis; [ADR 0006](docs/adr/0006-keycloak-autenticacao-autorizacao.md) e [ADR 0019](docs/adr/0019-integracao-operacional-keycloak.md)): a API valida o access token RS256 pelo JWKS
 - **Testcontainers** (testes de integração com PostgreSQL real)
 - **JaCoCo** (gate de 80% de cobertura em domain/application), **SonarCloud** (qualidade),
@@ -139,15 +139,19 @@ Os detalhes da carga estão na seção [Catálogo de demonstração](#catálogo-
 
 O token, as chamadas de exemplo e os códigos esperados estão em [Procedimento de autenticação](#procedimento-de-autenticação). No Swagger, em **Authorize**, cole só o valor do `access_token` (sem o prefixo `Bearer`); para copiar sem exibir, use `printf %s "$TOKEN" | pbcopy` (macOS) ou `printf %s "$TOKEN" | xclip -selection clipboard` (Linux).
 
-O e-mail do orçamento aparece no MailPit depois que a OS chega em `AGUARDANDO_APROVACAO` com contato cadastrado. O guia está em [docs/implementacao/notificacao-orcamento-email.md](docs/implementacao/notificacao-orcamento-email.md).
+Cada mudança de status da OS enfileira um e-mail ao cliente. O do orçamento aparece no MailPit quando a OS chega em `AGUARDANDO_APROVACAO` com contato cadastrado. O guia está em [docs/implementacao/notificacao-orcamento-email.md](docs/implementacao/notificacao-orcamento-email.md).
 
-## E-mail do orçamento
+## E-mail de status da OS
 
-Cadastre `email` em `POST /api/clientes` ou na abertura da OS. A geração do orçamento pela
-conclusão do diagnóstico ou submissão agenda o envio automaticamente após o commit. Leia os
-e-mails de demonstração no MailPit em **http://localhost:8025**. Cadastros antigos sem contato
-continuam funcionando; a mensagem aguarda a inclusão do e-mail. Falhas SMTP são retentadas.
-Veja o [guia de notificações](docs/implementacao/notificacao-orcamento-email.md).
+Cadastre `email` em `POST /api/clientes` ou na abertura da OS. Cada transição
+(recebida, diagnóstico, orçamento, execução, finalização, entrega e rejeição do
+orçamento) agenda um e-mail depois do commit. Repetir a mesma transição não cria
+outro. Leia os e-mails de demonstração no MailPit em **http://localhost:8025**.
+Cadastros antigos sem contato continuam funcionando; a mensagem aguarda a inclusão
+do e-mail. Falhas SMTP são retentadas. A solicitação de aprovação ainda pendente
+é cancelada se o orçamento já foi decidido. Veja o
+[guia de notificações](docs/implementacao/notificacao-orcamento-email.md) e o
+[ADR 0025](docs/adr/0025-notificacao-por-status-da-os.md).
 
 ## Catálogo de demonstração (opcional)
 

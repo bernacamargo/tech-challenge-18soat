@@ -5,6 +5,7 @@ import br.com.grupo117.oficina.atendimento.application.IdentificarCliente;
 import br.com.grupo117.oficina.atendimento.application.VeiculoRepositorio;
 import br.com.grupo117.oficina.atendimento.application.port.CatalogoOSPort;
 import br.com.grupo117.oficina.atendimento.application.port.ItemCatalogo;
+import br.com.grupo117.oficina.atendimento.application.port.NotificacaoPort;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpj;
@@ -27,16 +28,24 @@ public final class CriarOrdemDeServico {
     private final OrdemDeServicoRepositorio ordens;
     private final CatalogoOSPort catalogo;
     private final ReservaEstoquePort estoque;
+    private final NotificacaoPort notificacoes;
 
     public CriarOrdemDeServico(IdentificarCliente identificarCliente, CadastrarVeiculo cadastrarVeiculo,
                               VeiculoRepositorio veiculos, OrdemDeServicoRepositorio ordens,
                               CatalogoOSPort catalogo, ReservaEstoquePort estoque) {
+        this(identificarCliente, cadastrarVeiculo, veiculos, ordens, catalogo, estoque, os -> { });
+    }
+
+    public CriarOrdemDeServico(IdentificarCliente identificarCliente, CadastrarVeiculo cadastrarVeiculo,
+                              VeiculoRepositorio veiculos, OrdemDeServicoRepositorio ordens,
+                              CatalogoOSPort catalogo, ReservaEstoquePort estoque, NotificacaoPort notificacoes) {
         this.identificarCliente = Objects.requireNonNull(identificarCliente);
         this.cadastrarVeiculo = Objects.requireNonNull(cadastrarVeiculo);
         this.veiculos = Objects.requireNonNull(veiculos);
         this.ordens = Objects.requireNonNull(ordens);
         this.catalogo = Objects.requireNonNull(catalogo);
         this.estoque = Objects.requireNonNull(estoque);
+        this.notificacoes = Objects.requireNonNull(notificacoes);
     }
 
     public OrdemDeServico criar(String documento, String nome, String placa, String marca, String modelo, int ano) {
@@ -79,19 +88,20 @@ public final class CriarOrdemDeServico {
             cadastrarVeiculo.cadastrar(documento, placa, marca, modelo, ano);
         }
         OrdemDeServico os = ordens.salvar(new OrdemDeServico(UUID.randomUUID(), clienteId.digitos(), veiculoId.valor()));
-        if (itensIniciais.isEmpty()) {
-            return os;
+        if (!itensIniciais.isEmpty()) {
+            List<ItemDaOS> itens = itensIniciais.stream().map(this::criarItem).toList();
+            UUID osId = os.id();
+            // Adquire locks na mesma ordem usada na baixa e na devolução, mesmo se os pedidos
+            // listarem as peças em ordens diferentes.
+            itens.stream()
+                    .filter(item -> item.tipo() == TipoItemOS.PECA)
+                    .sorted(Comparator.comparing(item -> item.catalogoId().toString()))
+                    .forEach(item -> ItensDoCatalogo.reservarPeca(estoque, osId, item));
+            itens.forEach(os::incluirItem);
+            os = ordens.salvar(os);
         }
-
-        List<ItemDaOS> itens = itensIniciais.stream().map(this::criarItem).toList();
-        // Adquire locks na mesma ordem usada na baixa e na devolução, mesmo se os pedidos
-        // listarem as peças em ordens diferentes.
-        itens.stream()
-                .filter(item -> item.tipo() == TipoItemOS.PECA)
-                .sorted(Comparator.comparing(item -> item.catalogoId().toString()))
-                .forEach(item -> ItensDoCatalogo.reservarPeca(estoque, os.id(), item));
-        itens.forEach(os::incluirItem);
-        return ordens.salvar(os);
+        notificacoes.agendar(os);
+        return os;
     }
 
     private ItemDaOS criarItem(ItemInicial item) {

@@ -1,10 +1,19 @@
-# Envio do orçamento por e-mail
+# Envio de status da OS por e-mail
 
-A geração do orçamento agenda automaticamente uma mensagem ao entrar em Aguardando aprovação.
-Funciona nas rotas da PR #74:
+Cada transição de status agenda um e-mail ao cliente, na mesma transação da OS.
+A abertura avisa que a OS foi recebida. Diagnóstico, execução, finalização e entrega
+têm texto próprio. Aguardando aprovação mantém o snapshot de itens e total, sem link
+para aprovar ou rejeitar. A rejeição do orçamento gera um e-mail distinto
+(`ORCAMENTO_REJEITADO`), porque o status da OS não muda. A decisão está no
+[ADR 0025](../adr/0025-notificacao-por-status-da-os.md).
 
-- `POST /api/ordens-de-servico/{id}/diagnostico/conclusao`;
-- `POST /api/ordens-de-servico/{id}/submissao`.
+A fila aceita várias notificações da mesma OS. A idempotência é por `(ordem_de_servico_id, status)`:
+repetir a transição não cria outra linha. Uma solicitação de aprovação ainda não enviada
+é cancelada se a OS sair de Aguardando aprovação, o orçamento for rejeitado ou a OS for excluída.
+As demais situações são entregues mesmo que a OS já tenha avançado.
+
+Funciona nas rotas já existentes, sem endpoint novo: abertura da OS, início do diagnóstico,
+conclusão do diagnóstico, submissão, aprovação, rejeição, conclusão dos serviços e entrega.
 
 Não é necessário chamar uma rota de envio. Em condições normais, a mensagem aparece em até
 5 segundos após o commit. O scheduler usa uma fila PostgreSQL persistente. A decisão está no
@@ -75,7 +84,7 @@ sucesso pode duplicar a entrega (garantia pelo menos uma vez).
 Consulta administrativa local, sem conteúdo ou destinatário:
 
 ```sql
-SELECT ordem_de_servico_id, criada_em, enviada_em, cancelada_em, tentativas,
+SELECT ordem_de_servico_id, status, criada_em, enviada_em, cancelada_em, tentativas,
        proxima_tentativa_em, ultimo_erro
 FROM notificacao_orcamento
 ORDER BY criada_em DESC;
