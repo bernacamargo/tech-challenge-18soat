@@ -28,9 +28,9 @@ class NotificarOrcamentoTest {
             executar.run();
             var ordem = inOrder(repo, notificacoes);
             ordem.verify(repo).salvar(os);
-            ordem.verify(notificacoes).agendarOrcamento(os);
+            ordem.verify(notificacoes).agendar(os);
             assertThatIllegalStateException().isThrownBy(executar::run);
-            verify(notificacoes, times(1)).agendarOrcamento(os);
+            verify(notificacoes, times(1)).agendar(os);
         }
     }
 

@@ -3,6 +3,7 @@ package br.com.grupo117.oficina.atendimento.infrastructure.config;
 import br.com.grupo117.oficina.atendimento.application.port.BaixaEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.port.CatalogoOSPort;
 import br.com.grupo117.oficina.atendimento.application.port.DevolucaoEstoquePort;
+import br.com.grupo117.oficina.atendimento.application.port.NotificacaoPort;
 import br.com.grupo117.oficina.atendimento.application.port.OrdemDeServicoRepositorio;
 import br.com.grupo117.oficina.atendimento.application.port.ReservaEstoquePort;
 import br.com.grupo117.oficina.atendimento.application.usecase.AprovarOrcamento;
@@ -27,12 +28,16 @@ public class IntegracaoCatalogoEstoqueOSConfig {
     }
 
     @Bean
-    AprovarOrcamento aprovarOrcamento(OrdemDeServicoRepositorio ordens, BaixaEstoquePort estoque) {
-        return new AprovarOrcamento(ordens, estoque, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)));
+    AprovarOrcamento aprovarOrcamento(OrdemDeServicoRepositorio ordens, BaixaEstoquePort estoque,
+                                     NotificacaoPort notificacoes) {
+        return new AprovarOrcamento(ordens, estoque, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)),
+                notificacoes);
     }
 
     @Bean
-    RejeitarOrcamento rejeitarOrcamento(OrdemDeServicoRepositorio ordens, DevolucaoEstoquePort estoque) {
-        return new RejeitarOrcamento(ordens, estoque, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)));
+    RejeitarOrcamento rejeitarOrcamento(OrdemDeServicoRepositorio ordens, DevolucaoEstoquePort estoque,
+                                       NotificacaoPort notificacoes) {
+        return new RejeitarOrcamento(ordens, estoque, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)),
+                notificacoes);
     }
 }

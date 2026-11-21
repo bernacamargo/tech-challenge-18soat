@@ -56,4 +56,35 @@ class EmailClienteMigrationIntegrationTest extends AbstractIntegrationTest {
         } finally { jdbc.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE"); }
     }
 
+    @Test
+    void atualizaV12PermiteVariasNotificacoesPorOsEPreservaOOrcamento() {
+        String schema = "upgrade_status_" + UUID.randomUUID().toString().replace("-", "");
+        try {
+            Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).target("12").load().migrate();
+            jdbc.update("INSERT INTO " + schema + ".cliente(cpf_cnpj, nome) VALUES ('52998224725', 'Maria')");
+            jdbc.update("INSERT INTO " + schema + ".veiculo(placa, marca, modelo, ano, cpf_cnpj_cliente) "
+                    + "VALUES ('ABC1D23', 'Fiat', 'Uno', 2012, '52998224725')");
+            UUID osId = UUID.randomUUID();
+            jdbc.update("INSERT INTO " + schema + ".ordem_de_servico(id, cpf_cnpj_cliente, placa_veiculo, status, finalizada_em) "
+                    + "VALUES (?, '52998224725', 'ABC1D23', 'ENTREGUE', CURRENT_TIMESTAMP)", osId);
+            jdbc.update("INSERT INTO " + schema + ".notificacao_orcamento"
+                    + "(id, ordem_de_servico_id, cliente_id, assunto, corpo) "
+                    + "VALUES (?, ?, '52998224725', 'Orcamento', 'Snapshot original')", UUID.randomUUID(), osId);
+            var resultado = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).load().migrate();
+            assertThat(resultado.migrationsExecuted).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT status FROM " + schema
+                    + ".notificacao_orcamento WHERE corpo = 'Snapshot original'", String.class))
+                    .isEqualTo("AGUARDANDO_APROVACAO");
+            jdbc.update("INSERT INTO " + schema + ".notificacao_orcamento"
+                    + "(id, ordem_de_servico_id, cliente_id, assunto, corpo, status) "
+                    + "VALUES (?, ?, '52998224725', 'Entrega', 'Veiculo entregue', 'ENTREGUE')", UUID.randomUUID(), osId);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+                    + ".notificacao_orcamento WHERE ordem_de_servico_id = ?", Integer.class, osId)).isEqualTo(2);
+            assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema + ".notificacao_orcamento"
+                    + "(id, ordem_de_servico_id, cliente_id, assunto, corpo, status) "
+                    + "VALUES (?, ?, '52998224725', 'Outra', 'Duplicada', 'ENTREGUE')", UUID.randomUUID(), osId))
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        } finally { jdbc.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE"); }
+    }
+
 }

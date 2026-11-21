@@ -91,7 +91,7 @@ class ExclusaoOSIntegrationTest extends AbstractIntegrationTest {
         assertThat(jdbc.queryForObject("select count(*) from item_da_os where ordem_de_servico_id = ?",
                 Integer.class, os.id())).isEqualTo(1);
         assertThat(jdbc.queryForObject("select count(*) from notificacao_orcamento where ordem_de_servico_id = ? and cancelada_em is not null and enviada_em is null",
-                Integer.class, os.id())).isEqualTo(1);
+                Integer.class, os.id())).isEqualTo(2);
         for (String comando : List.of("diagnostico", "conclusao", "entrega", "diagnostico/conclusao", "submissao")) {
             assertThat(restTemplate.exchange(PATH + os.id() + "/" + comando, HttpMethod.POST,
                     new HttpEntity<>(headers("ADMINISTRADOR")), String.class).getStatusCode())
@@ -142,7 +142,7 @@ class ExclusaoOSIntegrationTest extends AbstractIntegrationTest {
             assertThat(jdbc.queryForObject("select status from reserva_de_estoque where ordem_de_servico_id = ?",
                     String.class, os.id())).isEqualTo("ATIVA");
             assertThat(jdbc.queryForObject("select count(*) from notificacao_orcamento where ordem_de_servico_id = ? and cancelada_em is null",
-                    Integer.class, os.id())).isEqualTo(1);
+                    Integer.class, os.id())).isEqualTo(2);
         } finally {
             jdbc.execute("drop trigger falhar_exclusao_os on ordem_de_servico");
             jdbc.execute("drop function falhar_exclusao_os()");

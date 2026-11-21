@@ -35,9 +35,10 @@ public class OrdemDeServicoConfig {
     @Bean
     CriarOrdemDeServico criarOrdemDeServico(ClienteRepositorio clientes, CadastrarVeiculo cadastrarVeiculo,
                                            VeiculoRepositorio veiculos, OrdemDeServicoRepositorio ordens,
-                                           CatalogoOSPort catalogo, ReservaEstoquePort estoque) {
+                                           CatalogoOSPort catalogo, ReservaEstoquePort estoque,
+                                           NotificacaoPort notificacoes) {
         return new CriarOrdemDeServico(new IdentificarCliente(clientes), cadastrarVeiculo, veiculos, ordens,
-                catalogo, estoque);
+                catalogo, estoque, notificacoes);
     }
 
     @Bean
@@ -50,19 +51,19 @@ public class OrdemDeServicoConfig {
         return new DetalharOrdemDeServico(ordens);
     }
     @Bean
-    IniciarDiagnostico iniciarDiagnostico(OrdemDeServicoRepositorio ordens) {
-        return new IniciarDiagnostico(ordens);
+    IniciarDiagnostico iniciarDiagnostico(OrdemDeServicoRepositorio ordens, NotificacaoPort notificacoes) {
+        return new IniciarDiagnostico(ordens, notificacoes);
     }
 
     @Bean
-    ConcluirServicos concluirServicos(OrdemDeServicoRepositorio ordens) {
+    ConcluirServicos concluirServicos(OrdemDeServicoRepositorio ordens, NotificacaoPort notificacoes) {
         // PostgreSQL armazena timestamps com precisão de microssegundos.
-        return new ConcluirServicos(ordens, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)));
+        return new ConcluirServicos(ordens, Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000)), notificacoes);
     }
 
     @Bean
-    RegistrarEntrega registrarEntrega(OrdemDeServicoRepositorio ordens) {
-        return new RegistrarEntrega(ordens);
+    RegistrarEntrega registrarEntrega(OrdemDeServicoRepositorio ordens, NotificacaoPort notificacoes) {
+        return new RegistrarEntrega(ordens, notificacoes);
     }
     @Bean
     GerarOrcamento gerarOrcamento(OrdemDeServicoRepositorio ordens, NotificacaoPort notificacoes) {

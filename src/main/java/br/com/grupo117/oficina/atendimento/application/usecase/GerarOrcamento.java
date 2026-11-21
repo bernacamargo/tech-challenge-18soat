@@ -23,7 +23,7 @@ public final class GerarOrcamento {
                 .orElseThrow(() -> new OrdemDeServicoNaoEncontradaException(id));
         os.gerarOrcamento();
         OrdemDeServico salva = ordens.salvar(os);
-        notificacoes.agendarOrcamento(salva);
+        notificacoes.agendar(salva);
         return salva;
     }
 }

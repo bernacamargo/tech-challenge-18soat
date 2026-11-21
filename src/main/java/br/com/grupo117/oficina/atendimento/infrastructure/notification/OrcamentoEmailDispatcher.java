@@ -13,7 +13,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 
-/** Entrega pelo menos uma vez. Falhas e ausência de contato permanecem na fila. */
+/**
+ * Entrega pelo menos uma vez. Falhas e ausência de contato permanecem na fila.
+ * Só cancela a solicitação de aprovação ainda não enviada quando ela já não cabe;
+ * as demais situações da OS são entregues.
+ */
 @Component
 @EnableScheduling
 @ConditionalOnProperty(name = "oficina.notificacoes.habilitadas", havingValue = "true", matchIfMissing = true)
@@ -35,17 +39,19 @@ public class OrcamentoEmailDispatcher {
     public void enviarPendentes() {
         var pendentes = jdbc.query("""
                 SELECT n.id, COALESCE(n.destinatario, c.email) AS email, n.assunto, n.corpo,
-                    (os.excluida_em IS NOT NULL OR os.status <> 'AGUARDANDO_APROVACAO'
-                        OR os.orcamento_rejeitado_em IS NOT NULL) AS decidida
+                    (os.excluida_em IS NOT NULL
+                        OR (n.status = 'AGUARDANDO_APROVACAO'
+                            AND (os.status <> 'AGUARDANDO_APROVACAO'
+                                OR os.orcamento_rejeitado_em IS NOT NULL))) AS obsoleta
                 FROM notificacao_orcamento n JOIN cliente c ON c.cpf_cnpj = n.cliente_id
                 JOIN ordem_de_servico os ON os.id = n.ordem_de_servico_id
                 WHERE n.enviada_em IS NULL AND n.cancelada_em IS NULL
                     AND n.proxima_tentativa_em <= CURRENT_TIMESTAMP
                 ORDER BY n.proxima_tentativa_em, n.id LIMIT 10 FOR UPDATE OF os, n SKIP LOCKED
                 """, (rs, row) -> new Mensagem(rs.getObject("id", UUID.class), rs.getString("email"),
-                        rs.getString("assunto"), rs.getString("corpo"), rs.getBoolean("decidida")));
+                        rs.getString("assunto"), rs.getString("corpo"), rs.getBoolean("obsoleta")));
         for (var mensagem : pendentes) {
-            if (mensagem.decidida()) {
+            if (mensagem.obsoleta()) {
                 jdbc.update("UPDATE notificacao_orcamento SET cancelada_em = CURRENT_TIMESTAMP, "
                         + "ultimo_erro = NULL WHERE id = ?", mensagem.id());
                 continue;
@@ -80,5 +86,5 @@ public class OrcamentoEmailDispatcher {
                 """, erro, id);
     }
 
-    private record Mensagem(UUID id, String email, String assunto, String corpo, boolean decidida) { }
+    private record Mensagem(UUID id, String email, String assunto, String corpo, boolean obsoleta) { }
 }
