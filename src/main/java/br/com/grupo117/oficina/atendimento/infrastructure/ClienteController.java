@@ -78,7 +78,7 @@ public class ClienteController {
 
     @DeleteMapping("/{cpfCnpj}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Remove um cliente")
+    @Operation(summary = "Exclui logicamente um cliente")
     public void remover(@PathVariable String cpfCnpj) {
         removerCliente.remover(cpfCnpj);
     }

@@ -7,6 +7,7 @@ import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import java.time.Instant;
 import org.springframework.data.domain.Persistable;
 
 /**
@@ -26,8 +27,14 @@ public class ClienteEntity implements Persistable<String> {
     @Column(name = "email", length = 254)
     private String email;
 
+    @Column(name = "excluida_em")
+    private Instant excluidaEm;
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public Instant getExcluidaEm() { return excluidaEm; }
+    public void setExcluidaEm(Instant excluidaEm) { this.excluidaEm = excluidaEm; }
 
     @Transient
     private boolean novo = true;

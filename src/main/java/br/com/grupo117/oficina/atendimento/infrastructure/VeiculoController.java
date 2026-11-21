@@ -84,7 +84,7 @@ public class VeiculoController {
 
     @DeleteMapping("/{placa}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Remove um veiculo")
+    @Operation(summary = "Exclui logicamente um veiculo")
     public void remover(@PathVariable String placa) {
         removerVeiculo.remover(placa);
     }

@@ -7,6 +7,7 @@ import br.com.grupo117.oficina.atendimento.application.DetalharVeiculo;
 import br.com.grupo117.oficina.atendimento.application.ListarVeiculos;
 import br.com.grupo117.oficina.atendimento.application.RemoverVeiculo;
 import br.com.grupo117.oficina.atendimento.application.VeiculoRepositorio;
+import br.com.grupo117.oficina.atendimento.application.VinculoDeCadastro;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -37,7 +38,7 @@ public class VeiculoUseCaseConfig {
     }
 
     @Bean
-    RemoverVeiculo removerVeiculo(VeiculoRepositorio veiculos) {
-        return new RemoverVeiculo(veiculos);
+    RemoverVeiculo removerVeiculo(VeiculoRepositorio veiculos, VinculoDeCadastro vinculos) {
+        return new RemoverVeiculo(veiculos, vinculos);
     }
 }

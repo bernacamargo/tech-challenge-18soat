@@ -6,6 +6,7 @@ import br.com.grupo117.oficina.atendimento.application.ClienteRepositorio;
 import br.com.grupo117.oficina.atendimento.application.DetalharCliente;
 import br.com.grupo117.oficina.atendimento.application.ListarClientes;
 import br.com.grupo117.oficina.atendimento.application.RemoverCliente;
+import br.com.grupo117.oficina.atendimento.application.VinculoDeCadastro;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,7 +37,7 @@ public class ClienteUseCaseConfig {
     }
 
     @Bean
-    RemoverCliente removerCliente(ClienteRepositorio clientes) {
-        return new RemoverCliente(clientes);
+    RemoverCliente removerCliente(ClienteRepositorio clientes, VinculoDeCadastro vinculos) {
+        return new RemoverCliente(clientes, vinculos);
     }
 }
