@@ -1,5 +1,6 @@
 package br.com.grupo117.oficina.infra.api;
 
+import br.com.grupo117.oficina.atendimento.application.CadastroComVinculoException;
 import br.com.grupo117.oficina.atendimento.application.ClienteJaCadastradoException;
 import br.com.grupo117.oficina.atendimento.application.ClienteNaoEncontradoException;
 import br.com.grupo117.oficina.atendimento.application.VeiculoJaCadastradoException;
@@ -36,7 +37,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResponse(erro.getMessage()));
     }
 
-    @ExceptionHandler({ClienteJaCadastradoException.class, VeiculoJaCadastradoException.class})
+    @ExceptionHandler({
+            ClienteJaCadastradoException.class,
+            VeiculoJaCadastradoException.class,
+            CadastroComVinculoException.class
+    })
     ResponseEntity<ErroResponse> jaCadastrado(RuntimeException erro) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResponse(erro.getMessage()));
     }

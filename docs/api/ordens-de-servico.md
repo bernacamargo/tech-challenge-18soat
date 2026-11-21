@@ -66,7 +66,7 @@ e consistência entre status e finalização. O agregado é reconstituído sem d
 
 `OrdemDeServicoService` envolve a criação inteira em transação. Falha ao cadastrar o veículo
 ou ao gravar a OS desfaz os cadastros anteriores. Consultas usam transações read-only.
-Exclusão física de cliente/veículo referenciado fica impedida pelas FKs (ADR 0008).
+Cliente e veículo são excluídos logicamente. Veículo ativo ou qualquer OS ainda vinculada responde 409 (ADR 0026).
 
 ## Segurança e verificação
 

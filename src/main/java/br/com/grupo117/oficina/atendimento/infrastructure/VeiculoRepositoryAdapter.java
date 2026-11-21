@@ -1,10 +1,14 @@
 package br.com.grupo117.oficina.atendimento.infrastructure;
 
+import br.com.grupo117.oficina.atendimento.application.ClienteNaoEncontradoException;
+import br.com.grupo117.oficina.atendimento.application.VeiculoJaCadastradoException;
+import br.com.grupo117.oficina.atendimento.application.VeiculoNaoEncontradoException;
 import br.com.grupo117.oficina.atendimento.application.VeiculoRepositorio;
 import br.com.grupo117.oficina.atendimento.domain.Cliente;
 import br.com.grupo117.oficina.atendimento.domain.CpfCnpj;
 import br.com.grupo117.oficina.atendimento.domain.Placa;
 import br.com.grupo117.oficina.atendimento.domain.Veiculo;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -41,8 +45,12 @@ public class VeiculoRepositoryAdapter implements VeiculoRepositorio {
     public Veiculo salvar(Veiculo veiculo) {
         String placa = veiculo.placa().valor();
         ClienteEntity cliente = clientes.findById(veiculo.cliente().cpfCnpj().digitos())
-                .orElseThrow(() -> new IllegalStateException("Cliente do veiculo nao esta persistido"));
+                .filter(cadastro -> cadastro.getExcluidaEm() == null)
+                .orElseThrow(() -> new ClienteNaoEncontradoException(veiculo.cliente().cpfCnpj()));
         VeiculoEntity entity = veiculos.findById(placa).orElseGet(VeiculoEntity::new);
+        if (entity.getExcluidaEm() != null) {
+            throw new VeiculoJaCadastradoException(veiculo.placa());
+        }
         entity.setPlaca(placa);
         entity.setMarca(veiculo.marca());
         entity.setModelo(veiculo.modelo());
@@ -53,7 +61,11 @@ public class VeiculoRepositoryAdapter implements VeiculoRepositorio {
 
     @Override
     public void remover(Placa placa) {
-        veiculos.deleteById(placa.valor());
+        VeiculoEntity entity = veiculos.findById(placa.valor())
+                .filter(cadastro -> cadastro.getExcluidaEm() == null)
+                .orElseThrow(() -> new VeiculoNaoEncontradoException(placa));
+        entity.setExcluidaEm(Instant.now());
+        veiculos.save(entity);
     }
 
     private Veiculo paraDominio(VeiculoEntity entity) {

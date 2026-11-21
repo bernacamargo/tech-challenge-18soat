@@ -10,6 +10,7 @@ import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import java.time.Instant;
 import org.springframework.data.domain.Persistable;
 
 /**
@@ -35,6 +36,9 @@ public class VeiculoEntity implements Persistable<String> {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "cpf_cnpj_cliente", nullable = false)
     private ClienteEntity cliente;
+
+    @Column(name = "excluida_em")
+    private Instant excluidaEm;
 
     @Transient
     private boolean novo = true;
@@ -96,5 +100,13 @@ public class VeiculoEntity implements Persistable<String> {
 
     public void setCliente(ClienteEntity cliente) {
         this.cliente = cliente;
+    }
+
+    public Instant getExcluidaEm() {
+        return excluidaEm;
+    }
+
+    public void setExcluidaEm(Instant excluidaEm) {
+        this.excluidaEm = excluidaEm;
     }
 }
